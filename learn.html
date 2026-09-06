@@ -47,7 +47,7 @@ CA.ready(function () {
   function viewCard() {
     var c = st.queue[st.i];
     var front = el("div", { style: "cursor:pointer", onclick: function () { st.flipped = !st.flipped; render(); } }, [
-      el("img", { src: CA.flagUrl(c.f, "w640"), alt: "Флаг " + c.n, style: "display:block;width:100%;aspect-ratio:3/2;object-fit:cover;border:1px solid var(--divider)" }),
+      el("img", { src: CA.flagUrl(c.f, "w640"), alt: "Флаг " + c.n, style: "display:block;width:100%;aspect-ratio:3/2;object-fit:contain;background:var(--n200);border:1px solid var(--divider)" }),
       el("div", { style: "font-weight:600;font-size:clamp(26px,4vw,44px);line-height:1.1;margin-top:18px" }, [c.n]),
       el("div", { style: "font-size:15px;color:var(--n700);margin-top:6px" }, ["Нажмите на карточку, чтобы перевернуть"])
     ]);

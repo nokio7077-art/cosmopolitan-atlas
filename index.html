@@ -37,7 +37,7 @@ CA.ready(function () {
       resultsFor(e.target.value).forEach(function (c) {
         resBox.appendChild(el("a", { class: "li clickable", href: "country.html?iso=" + c.f }, [
           el("span", { style: "display:flex;align-items:center;gap:12px" }, [
-            el("img", { src: CA.flagUrl(c.f, "w40"), alt: "", style: "width:36px;aspect-ratio:4/3;object-fit:cover" }),
+            el("img", { src: CA.flagUrl(c.f, "w40"), alt: "", style: "width:36px;aspect-ratio:4/3;object-fit:contain;background:var(--n200)" }),
             el("b", { style: "font-weight:600" }, [c.n])
           ]),
           el("span", { style: "color:var(--n700);font-size:15px" }, [c.c + " · " + CA.regionName(c.r)])
