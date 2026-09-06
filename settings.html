@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Настройки — Cosmopolitan</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.SUPABASE_URL = "https://examtwlpaeheturjkacc.supabase.co";
+  window.SUPABASE_ANON_KEY = "sb_publishable_ivn0-52SCJ61gQ2vC7LyZw_QLvz6Ymy";
+</script>
+</head>
+<body>
+<main id="app"></main>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+CA.ready(function () {
+  var el = CA.el, k = CA.kicker, p = CA.progress, app = document.getElementById("app");
+  var msg = null;
+
+  function render() {
+    app.innerHTML = "";
+    var me = CA.currentDisplayName();
+    var titles = el("div", { style: "display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 20px;margin-top:16px" },
+      CA.PERSONAS.map(function (title) {
+        var active = p.playerTitle === title;
+        return el("button", {
+          class: "btn" + (active ? " primary" : " ghost"), type: "button", style: "text-align:left",
+          onclick: function (e) {
+            var b = e.currentTarget; b.disabled = true;
+            CA.pickPersona(title, function (ok, err) {
+              msg = ok ? null : ("Не получилось: " + err);
+              render();
+            });
+          }
+        }, [title]);
+      }));
+
+    CA.mount(el("div", { class: "screen", style: "max-width:760px" }, [
+      el("h1", { class: "big", style: "font-size:clamp(30px,4vw,44px);margin-bottom:14px" }, ["Настройки"]),
+      el("p", { class: "lede", style: "margin:0 0 32px" }, ["Прогресс хранится только в этом браузере. Для рейтинга недели нужен титул — номер к нему присвоится сам."]),
+
+      k("Титул в рейтинге"),
+      el("p", { style: "margin:8px 0 0;font-size:16px;color:var(--n800)" }, me
+        ? ["Сейчас вы — ", el("b", { style: "font-weight:600" }, [me]), ". Номер закреплён навсегда, титул можно менять."]
+        : ["Выберите титул — номер присвоится сам, по порядку регистрации, и останется с вами навсегда."]),
+      msg ? el("p", { class: "bad", style: "margin:8px 0 0;font-size:16px" }, [msg]) : null,
+      titles,
+
+      el("div", { style: "margin-top:44px" }, [k("Данные")]),
+      el("div", { class: "list", style: "margin-top:12px" }, [
+        el("div", { class: "li" }, [el("span", {}, ["Изучено стран"]), el("span", {}, [String(CA.studiedCount("world"))])]),
+        el("div", { class: "li" }, [el("span", {}, ["Рекорд сессии"]), el("span", {}, [String(p.highScore || 0)])]),
+        el("div", { class: "li" }, [el("span", {}, ["Раундов сыграно"]), el("span", {}, [String(p.totalRounds || 0)])]),
+        el("div", { class: "li" }, [el("span", {}, ["Подсказки"]), el("span", {}, [String(p.hints || 0)])]),
+        el("div", { class: "li" }, [el("span", {}, ["Полная версия"]), el("span", {}, [p.premium ? "открыта" : "не открыта"])])
+      ]),
+      el("div", { style: "margin-top:26px" }, [
+        el("button", { class: "btn", type: "button", onclick: function () {
+          if (!confirm("Сбросить весь прогресс? Титул и номер останутся.")) return;
+          p.perCountry = {}; p.highScore = 0; p.totalRounds = 0; p.premium = false; p.hints = 0;
+          CA.saveProgress(); render();
+        } }, ["Сбросить прогресс"])
+      ]),
+      el("p", { style: "margin-top:32px;font-size:15px;line-height:25px;color:var(--n700)" }, [
+        "Что именно хранится и зачем — на странице ", el("a", { href: "privacy.html" }, ["политики конфиденциальности"]), "."
+      ])
+    ]));
+  }
+  render();
+});
+</script>
+</body>
+</html>

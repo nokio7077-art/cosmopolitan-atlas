@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Статистика — Cosmopolitan</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main id="app"></main>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+CA.ready(function () {
+  var el = CA.el, k = CA.kicker, p = CA.progress;
+
+  var hard = Object.keys(p.perCountry).map(function (iso) {
+    var e = p.perCountry[iso], c = CA.byIso(iso);
+    return { iso: iso, n: c ? c.n : iso, total: e.mistakes.capital + e.mistakes.flag + e.mistakes.map };
+  }).filter(function (x) { return x.total > 0; }).sort(function (a, b) { return b.total - a.total; }).slice(0, 8);
+
+  var right = el("div", {}, [el("h2", { style: "font-size:30px;line-height:34px;margin-bottom:18px" }, ["Пока сопротивляются"])]);
+  if (hard.length) {
+    right.appendChild(el("div", { class: "list" }, hard.map(function (x) {
+      var word = x.total === 1 ? " ошибка" : (x.total < 5 ? " ошибки" : " ошибок");
+      return el("a", { class: "li clickable", href: "country.html?iso=" + x.iso }, [
+        el("span", {}, [x.n]), el("span", { class: "bad" }, [x.total + word])
+      ]);
+    })));
+  } else {
+    right.appendChild(el("p", { style: "margin:0;font-size:16px;color:var(--n800)" }, ["Пока пусто — сыграйте раунд, и здесь появятся страны, которые чаще всего ускользают."]));
+    right.appendChild(el("div", { style: "margin-top:20px" }, [el("a", { class: "btn primary", href: "play.html" }, ["Играть"])]));
+  }
+
+  CA.mount(el("div", { class: "screen" }, [
+    el("h1", { class: "big", style: "font-size:clamp(32px,4.5vw,48px);margin-bottom:28px" }, ["Ваш прогресс"]),
+    el("div", { style: "display:flex;gap:clamp(32px,7vw,96px);flex-wrap:wrap;margin-bottom:52px" }, [
+      el("div", { class: "stat" }, [el("b", {}, [String(CA.studiedCount("world"))]), k("стран изучено")]),
+      el("div", { class: "stat" }, [el("b", {}, [String(p.highScore || 0)]), k("рекорд сессии")]),
+      el("div", { class: "stat" }, [el("b", {}, [String(p.totalRounds || 0)]), k("раундов сыграно")])
+    ]),
+    el("div", { class: "grid two", style: "align-items:start" }, [
+      el("div", {}, [
+        el("h2", { style: "font-size:30px;line-height:34px;margin-bottom:18px" }, ["По регионам"]),
+        el("div", { style: "display:flex;flex-direction:column;gap:18px" }, ["world"].concat(CA.REGION_ORDER).map(function (key) {
+          var list = CA.regionCountries(key), done = CA.studiedCount(key);
+          return el("div", {}, [
+            el("div", { style: "display:flex;justify-content:space-between" }, [
+              el("span", {}, [CA.regionName(key)]), el("span", {}, [done + "/" + list.length])
+            ]),
+            CA.bar(Math.round(100 * done / Math.max(1, list.length)))
+          ]);
+        }))
+      ]),
+      right
+    ])
+  ]));
+});
+</script>
+</body>
+</html>

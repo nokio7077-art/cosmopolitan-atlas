@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Страна — Cosmopolitan</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main id="app"></main>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+CA.ready(function () {
+  var el = CA.el, k = CA.kicker;
+  var c = CA.byIso((CA.qs("iso") || "").toLowerCase());
+
+  if (!c) {
+    CA.mount(el("div", { class: "screen" }, [
+      el("h1", { class: "big", style: "font-size:clamp(30px,4vw,44px);margin-bottom:14px" }, ["Страна не найдена"]),
+      el("p", { class: "lede", style: "margin:0 0 24px" }, ["Возможно, ссылка неполная. Найдите страну через поиск на главной."]),
+      el("a", { class: "btn primary", href: "index.html" }, ["На главную"])
+    ]));
+    return;
+  }
+
+  document.title = c.n + " — Cosmopolitan";
+  var e = CA.entry(c.f);
+  var rows = [
+    ["Столица", c.c],
+    ["Регион", CA.regionName(c.r)],
+    ["Код", c.f.toUpperCase()],
+    ["Координаты столицы", c.lat.toFixed(2) + ", " + c.lng.toFixed(2)],
+    ["Ваши попытки", e ? e.attempts + " · ошибок " + (e.mistakes.capital + e.mistakes.flag + e.mistakes.map) : "ещё не играли"]
+  ];
+
+  var idx = COUNTRIES.filter(function (x) { return x.r === c.r; }).sort(function (a, b) { return a.n.localeCompare(b.n, "ru"); });
+  var pos = idx.map(function (x) { return x.f; }).indexOf(c.f);
+  var prev = idx[(pos - 1 + idx.length) % idx.length], nxt = idx[(pos + 1) % idx.length];
+
+  CA.mount(el("div", { class: "screen" }, [
+    el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;gap:16px;flex-wrap:wrap" }, [
+      el("a", { href: "index.html" }, ["← Индекс стран"]),
+      k(CA.regionName(c.r) + (CA.isStudied(c.f) ? " · изучено" : ""))
+    ]),
+    el("h1", { class: "big", style: "font-size:clamp(38px,7vw,76px);margin-bottom:26px" }, [c.n]),
+    el("div", { class: "grid two", style: "align-items:start" }, [
+      el("div", {}, [
+        el("img", { src: CA.flagUrl(c.f, "w640"), alt: "Флаг " + c.n, style: "display:block;width:100%;aspect-ratio:3/2;object-fit:cover;border:1px solid var(--divider)" }),
+        el("table", { style: "margin-top:18px" }, [el("tbody", {}, rows.map(function (r) {
+          return el("tr", {}, [el("td", {}, [r[0]]), el("td", { style: "text-align:right" }, [r[1]])]);
+        }))]),
+        el("div", { style: "margin-top:18px" }, [
+          el("a", { class: "btn primary block", href: "play.html?iso=" + c.f, style: "text-align:center" }, ["Сыграть эту страну"])
+        ])
+      ]),
+      el("div", {}, [
+        CA.mapSvg({ highlight: c.f, highlightFill: "#0088b0" }),
+        FLAG_FACTS[c.f] ? el("div", { class: "fact" }, [k("О флаге", "ac"), el("p", {}, [FLAG_FACTS[c.f]])]) : null,
+        el("div", { class: "row", style: "margin-top:26px" }, [
+          el("a", { class: "btn ghost", href: "country.html?iso=" + prev.f }, ["← " + prev.n]),
+          el("a", { class: "btn ghost", href: "country.html?iso=" + nxt.f }, [nxt.n + " →"])
+        ])
+      ])
+    ])
+  ]));
+});
+</script>
+</body>
+</html>

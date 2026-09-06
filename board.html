@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Рейтинг недели — Cosmopolitan</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.SUPABASE_URL = "https://examtwlpaeheturjkacc.supabase.co";
+  window.SUPABASE_ANON_KEY = "sb_publishable_ivn0-52SCJ61gQ2vC7LyZw_QLvz6Ymy";
+</script>
+</head>
+<body>
+<main id="app"></main>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+CA.ready(function () {
+  var el = CA.el, k = CA.kicker;
+  var me = CA.currentDisplayName();
+  var body = el("div", {}, [el("p", { style: "margin:0;color:var(--n700)" }, ["Загружаем…"])]);
+
+  CA.mount(el("div", { class: "screen" }, [
+    el("h1", { class: "big", style: "font-size:clamp(32px,4.5vw,48px);margin-bottom:14px" }, ["Рейтинг недели"]),
+    el("p", { class: "lede", style: "margin:0 0 8px" }, ["Считаем лучшую сессию за семь дней. Имён и регистрации нет: титул и номер присваиваются автоматически."]),
+    el("p", { style: "margin:0 0 28px;font-size:16px;color:var(--n800)" }, me
+      ? ["Вы играете как ", el("b", { style: "font-weight:600" }, [me]), ". Титул можно сменить в ", el("a", { href: "settings.html" }, ["настройках"]), "."]
+      : ["Титул пока не выбран — возьмите его в ", el("a", { href: "settings.html" }, ["настройках"]), ", чтобы попадать в таблицу."]),
+    body
+  ]));
+
+  CA.fetchLeaderboard(function (rows, err) {
+    body.innerHTML = "";
+    if (err) {
+      body.appendChild(el("p", { style: "margin:0;font-size:16px;color:var(--n800)" }, [err + "."]));
+      return;
+    }
+    if (!rows.length) {
+      body.appendChild(el("p", { class: "verdict", style: "margin:0" }, ["За эту неделю результатов пока нет. Ваша сессия может стать первой."]));
+      body.appendChild(el("div", { style: "margin-top:22px" }, [el("a", { class: "btn primary", href: "play.html" }, ["Играть"])]));
+      return;
+    }
+    var table = el("table", {}, [
+      el("thead", {}, [el("tr", {}, [
+        el("th", { style: "width:56px" }, ["№"]), el("th", {}, ["Игрок"]),
+        el("th", {}, ["Регион"]), el("th", {}, ["Стран"]), el("th", { style: "text-align:right" }, ["Очки"])
+      ])]),
+      el("tbody", {}, rows.map(function (row, i) {
+        var mine = me && String(row.name) === me;
+        var style = mine ? "color:var(--accent-ink)" : "";
+        return el("tr", {}, [
+          el("td", {}, [String(i + 1)]),
+          el("td", { style: style }, [row.name]),
+          el("td", {}, [row.region || "—"]),
+          el("td", {}, [String(row.countries != null ? row.countries : "—")]),
+          el("td", { style: "text-align:right;" + style }, [String(row.points)])
+        ]);
+      }))
+    ]);
+    body.appendChild(table);
+    body.appendChild(el("p", { style: "margin:22px 0 0;font-size:15px;color:var(--n700)" }, ["Показываем по одной лучшей сессии на игрока."]));
+  });
+});
+</script>
+</body>
+</html>

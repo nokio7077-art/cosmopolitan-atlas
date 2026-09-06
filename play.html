@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Играть — Cosmopolitan</title>
+<meta name="description" content="Раунд из трёх шагов: столица, флаг и точка на карте мира.">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.SUPABASE_URL = "https://examtwlpaeheturjkacc.supabase.co";
+  window.SUPABASE_ANON_KEY = "sb_publishable_ivn0-52SCJ61gQ2vC7LyZw_QLvz6Ymy";
+</script>
+</head>
+<body>
+<main id="app"></main>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+CA.ready(function () {
+  var el = CA.el, k = CA.kicker, app = document.getElementById("app");
+  var forcedIso = CA.qs("iso");
+  var st = {
+    view: "regions", region: null, queue: [], i: 0, round: null,
+    score: 0, combo: 0, mistakes: {}, capital: "", filter: "", submitted: false, submitMsg: null
+  };
+
+  function render() {
+    app.innerHTML = "";
+    var node = st.view === "regions" ? viewRegions()
+      : st.view === "setup" ? viewSetup()
+      : st.view === "round" ? viewRound()
+      : viewEnd();
+    CA.mount(node);
+    window.scrollTo(0, 0);
+  }
+  function newRound(c) {
+    return { c: c, step: "capital", capOk: false, capDone: false, hint: null,
+      flagDone: false, flagOk: false, pick: null, mapDone: false, st: 0, click: null, target: null, points: 0, mult: 1 };
+  }
+  function start(regionKey, size, forced) {
+    var list = forced || CA.regionCountries(regionKey);
+    st.region = regionKey;
+    st.queue = forced ? forced : CA.shuffle(list).slice(0, Math.min(size || list.length, list.length));
+    st.i = 0; st.score = 0; st.combo = 0; st.mistakes = {}; st.capital = ""; st.filter = "";
+    st.submitted = false; st.submitMsg = null;
+    st.round = newRound(st.queue[0]); st.view = "round"; render();
+  }
+
+  function viewRegions() {
+    return el("div", { class: "screen" }, [
+      el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px" }, [
+        el("a", { href: "index.html" }, ["← На главную"]), k("Режим «Играть»")
+      ]),
+      el("h1", { class: "big", style: "font-size:clamp(32px,4.5vw,48px);margin-bottom:26px" }, ["Где сегодня играем?"]),
+      el("div", { class: "tile-list" }, ["world"].concat(CA.REGION_ORDER).map(function (key) {
+        var list = CA.regionCountries(key), done = CA.studiedCount(key), locked = !CA.unlocked(key);
+        return el("a", {
+          class: "tile", href: locked ? "premium.html" : "#",
+          onclick: function (e) { if (locked) return; e.preventDefault(); st.region = key; st.view = "setup"; render(); }
+        }, [
+          el("div", { style: "display:flex;align-items:baseline;gap:12px" }, [
+            el("h3", {}, [CA.regionName(key)]), locked ? el("span", { class: "tag" }, ["Премиум"]) : null
+          ]),
+          el("div", { class: "meta" }, [el("span", {}, [done + "/" + list.length + " изучено"]), el("span", {}, [list.length + " стран"])]),
+          CA.bar(Math.round(100 * done / Math.max(1, list.length)))
+        ]);
+      }))
+    ]);
+  }
+
+  function viewSetup() {
+    var list = CA.regionCountries(st.region);
+    return el("div", { class: "screen" }, [
+      el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px" }, [
+        el("a", { href: "#", onclick: function (e) { e.preventDefault(); st.view = "regions"; render(); } }, ["← Регионы"]),
+        k(CA.regionName(st.region) + " · " + list.length + " стран")
+      ]),
+      el("h1", { class: "big", style: "font-size:clamp(32px,4.5vw,48px);margin-bottom:14px" }, ["Сколько стран разыграть?"]),
+      el("p", { class: "lede", style: "margin:0 0 28px" }, ["Десять — короткая разминка, весь регион — серьёзная работа. Прогресс считается в любом случае."]),
+      el("div", { class: "row" }, [
+        el("button", { class: "btn primary", type: "button", onclick: function () { start(st.region, 10); } }, ["10 стран"]),
+        el("button", { class: "btn", type: "button", onclick: function () { start(st.region, 20); } }, ["20 стран"]),
+        el("button", { class: "btn ghost", type: "button", onclick: function () { start(st.region, list.length); } }, ["Весь регион (" + list.length + ")"])
+      ])
+    ]);
+  }
+
+  function hud() {
+    var items = [
+      el("span", { class: "kicker" }, ["Раунд " + (st.i + 1) + " / " + st.queue.length]),
+      el("span", { class: "kicker" }, [st.score + " очков"])
+    ];
+    if (st.combo >= 3) items.push(el("span", { class: "kicker sp" }, ["комбо ×1.5"]));
+    else if (st.combo > 0) items.push(el("span", { class: "kicker" }, ["серия " + st.combo]));
+    items.push(el("span", { class: "kicker" }, [CA.regionName(st.region)]));
+    items.push(el("a", { class: "kicker", href: "index.html" }, ["Выйти"]));
+    return el("div", {}, [el("hr", { class: "rule" }), el("div", { class: "hud" }, items), el("hr", { class: "hairline" })]);
+  }
+
+  function viewRound() {
+    var box = el("div", { class: "screen", style: "padding-top:22px" }, [hud()]);
+    var r = st.round;
+    box.appendChild(r.step === "capital" ? stepCapital(r) : r.step === "flag" ? stepFlag(r) : r.step === "map" ? stepMap(r) : stepSummary(r));
+    return box;
+  }
+
+  function stepCapital(r) {
+    var box = el("div", { style: "padding-top:48px" }, [
+      k("Шаг 1 из 3 · столица", "ac"),
+      el("h1", { class: "big", style: "margin:14px 0 26px" }, [r.c.n])
+    ]);
+    if (!r.capDone) {
+      var input = el("input", { class: "input", id: "cap", type: "text", placeholder: "Введите название", autocomplete: "off", style: "margin-top:10px;font-size:20px",
+        oninput: function (e) { st.capital = e.target.value; },
+        onkeydown: function (e) { if (e.key === "Enter") submitCap(); } });
+      box.appendChild(el("div", { class: "row", style: "align-items:flex-end;max-width:640px" }, [
+        el("div", { class: "field", style: "flex:1;min-width:200px" }, [el("label", { class: "kicker", for: "cap" }, ["Столица"]), input]),
+        el("button", { class: "btn primary", type: "button", onclick: submitCap }, ["Ответить"])
+      ]));
+      if (r.hint) box.appendChild(el("p", { class: "verdict", style: "margin:16px 0 0" }, ["Начинается на «" + r.hint + "…»"]));
+      else if ((CA.progress.hints || 0) > 0) box.appendChild(el("p", { style: "margin:18px 0 0;font-size:16px;color:var(--n700)" }, [
+        "Осталось подсказок: " + CA.progress.hints + " · ",
+        el("a", { href: "#", onclick: function (e) { e.preventDefault(); CA.progress.hints--; CA.saveProgress(); r.hint = r.c.c.slice(0, 2); render(); } }, ["показать первые буквы"])
+      ]));
+      else box.appendChild(el("p", { style: "margin:18px 0 0;font-size:16px;color:var(--n700)" }, ["Подсказки закончились — их можно получить в ", el("a", { href: "premium.html" }, ["полной версии"]), "."]));
+      setTimeout(function () { var i = document.getElementById("cap"); if (i) { i.value = st.capital; i.focus(); } }, 0);
+    } else {
+      box.appendChild(el("div", {}, [
+        k(r.capOk ? "Верно" : "Неверно"),
+        el("div", { style: "font-weight:600;font-size:clamp(30px,5vw,40px);line-height:1.1;margin-top:10px" }, [r.c.c]),
+        el("p", { class: "verdict " + (r.capOk ? "ok" : "bad"), style: "margin:10px 0 22px" }, [r.capOk ? "Точно так. Плюс десять очков." : "Вы написали «" + (st.capital || "—") + "». Запомним."]),
+        el("button", { class: "btn primary", type: "button", onclick: function () { r.step = "flag"; render(); } }, ["Дальше · флаг"])
+      ]));
+    }
+    return box;
+  }
+  function submitCap() {
+    var r = st.round;
+    if (r.capDone) return;
+    r.capDone = true; r.capOk = CA.fuzzy(st.capital, r.c.c); render();
+  }
+
+  function stepFlag(r) {
+    var list = COUNTRIES.slice().sort(function (a, b) { return a.n.localeCompare(b.n, "ru"); });
+    var f = CA.norm(st.filter);
+    if (f) list = list.filter(function (c) { return CA.norm(c.n).indexOf(f) === 0; });
+    var input = el("input", { class: "input", id: "fq", type: "text", placeholder: "Название страны", autocomplete: "off", style: "margin-top:10px",
+      oninput: function (e) { st.filter = e.target.value; render(); } });
+    var grid = el("div", { class: "flags" }, list.map(function (c) {
+      var cls = "fl";
+      if (r.flagDone) { if (c.f === r.c.f) cls += " right"; else if (c.f === r.pick) cls += " wrong"; }
+      return el("button", { class: cls, type: "button", title: c.n, onclick: function () {
+        if (r.flagDone) return;
+        r.flagDone = true; r.flagOk = c.f === r.c.f; r.pick = c.f; render();
+      } }, [el("img", { src: CA.flagUrl(c.f, "w80"), alt: c.n, loading: "lazy" })]);
+    }));
+    var box = el("div", { style: "padding-top:36px" }, [
+      el("div", { style: "display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px" }, [
+        el("div", {}, [k("Шаг 2 из 3 · флаг", "ac"), el("h1", { class: "big", style: "font-size:clamp(30px,4.5vw,52px);margin-top:10px" }, [r.c.n])]),
+        el("div", { class: "field", style: "width:min(280px,100%)" }, [el("label", { class: "kicker", for: "fq" }, ["Отфильтровать флаги"]), input])
+      ]),
+      grid
+    ]);
+    if (r.flagDone) box.appendChild(el("div", { class: "row", style: "margin-top:20px;align-items:center" }, [
+      el("span", { class: "verdict " + (r.flagOk ? "ok" : "bad") }, [r.flagOk ? "Верно — плюс десять." : "Верный флаг обведён голубым."]),
+      el("button", { class: "btn primary", type: "button", onclick: function () { r.step = "map"; render(); } }, ["Дальше · карта"])
+    ]));
+    setTimeout(function () { var i = document.getElementById("fq"); if (i && st.filter) { i.value = st.filter; i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 0);
+    return box;
+  }
+
+  function stepMap(r) {
+    var pins = [];
+    if (r.mapDone) {
+      pins.push({ x: r.click.x, y: r.click.y, r: 6, fill: "#d6006c" });
+      if (r.st < 3) pins.push({ x: r.target.x, y: r.target.y, r: 5, fill: "#0088b0" });
+    }
+    var map = CA.mapSvg({
+      highlight: r.mapDone ? r.c.f : null, highlightFill: "#99e0ff", pins: pins,
+      onClick: r.mapDone ? null : function (ev) {
+        var b = ev.currentTarget.getBoundingClientRect();
+        var x = (ev.clientX - b.left) / b.width * 1000, y = (ev.clientY - b.top) / b.height * 500;
+        var lng = x / 1000 * 360 - 180, lat = 90 - y / 500 * 180;
+        var t = CA.project(r.c.lng, r.c.lat);
+        var dist = Math.sqrt(Math.pow(x - t.x, 2) + Math.pow(y - t.y, 2));
+        var tol2 = 1000 * (CA.SIZE_TOL[r.c.s] || 0.038), tol3 = tol2 * 0.45;
+        var ins = CA.insideCountry(r.c.f, lng, lat);
+        r.st = ins === null ? (dist <= tol3 ? 3 : (dist <= tol2 ? 2 : 0))
+          : (ins ? (dist <= tol3 ? 3 : 2) : (dist <= tol2 * 0.5 ? 2 : 0));
+        r.mapDone = true; r.click = { x: x, y: y }; r.target = t; render();
+      }
+    });
+    var line = r.mapDone
+      ? (r.st > 0 ? "Попадание · " + CA.stars(r.st) + " · +" + (r.st === 3 ? 40 : 20) + " очков" : "Мимо — голубая точка показывает верное место")
+      : "Нажмите на карту там, где находится эта страна";
+    var foot = el("div", { style: "display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:18px" }, [el("span", {}, [line])]);
+    if (r.mapDone) foot.appendChild(el("button", { class: "btn primary", type: "button", onclick: finish }, ["Итог раунда"]));
+    return el("div", { style: "padding-top:36px" }, [
+      k("Шаг 3 из 3 · где это на карте", "ac"),
+      el("h1", { class: "big", style: "font-size:clamp(28px,4vw,44px);margin:14px 0 18px" }, [r.c.n]),
+      map, foot
+    ]);
+  }
+
+  function finish() {
+    var r = st.round;
+    var raw = (r.capOk ? 10 : 0) + (r.flagOk ? 10 : 0) + (r.st === 3 ? 40 : (r.st === 2 ? 20 : 0));
+    var clean = r.capOk && r.flagOk && r.st >= 2;
+    st.combo = clean ? st.combo + 1 : 0;
+    r.mult = st.combo >= 3 ? 1.5 : 1;
+    r.points = Math.round(raw * r.mult);
+    st.score += r.points;
+    var e = CA.progress.perCountry[r.c.f] || { attempts: 0, sumScore: 0, mistakes: { capital: 0, flag: 0, map: 0 } };
+    e.attempts++; e.sumScore += raw;
+    if (!r.capOk) e.mistakes.capital++;
+    if (!r.flagOk) e.mistakes.flag++;
+    if (r.st < 2) e.mistakes.map++;
+    CA.progress.perCountry[r.c.f] = e;
+    CA.progress.totalRounds = (CA.progress.totalRounds || 0) + 1;
+    CA.saveProgress();
+    if (!clean) {
+      var what = [];
+      if (!r.capOk) what.push("столица");
+      if (!r.flagOk) what.push("флаг");
+      if (r.st < 2) what.push("карта");
+      st.mistakes[r.c.n] = { iso: r.c.f, what: what.join(", ") };
+    }
+    r.step = "summary"; render();
+  }
+
+  function stepSummary(r) {
+    var rows = [
+      ["Столица — " + r.c.c, r.capOk ? "верно · +10" : "неверно", r.capOk],
+      ["Флаг", r.flagOk ? "верно · +10" : "неверно", r.flagOk],
+      ["Позиция на карте", CA.stars(r.st) + (r.st >= 2 ? " · +" + (r.st === 3 ? 40 : 20) : ""), r.st >= 2],
+      ["Множитель комбо", "×" + r.mult, true]
+    ];
+    var last = st.i + 1 >= st.queue.length;
+    return el("div", { style: "padding-top:44px" }, [el("div", { class: "grid two", style: "align-items:start" }, [
+      el("div", {}, [
+        el("h1", { class: "big", style: "font-size:clamp(34px,5.5vw,64px);margin-bottom:26px" }, [r.c.n]),
+        el("table", {}, [el("tbody", {}, rows.map(function (row) {
+          return el("tr", {}, [el("td", {}, [row[0]]), el("td", { class: row[2] ? "ok" : "bad", style: "text-align:right" }, [row[1]])]);
+        }))])
+      ]),
+      el("div", {}, [
+        k("За раунд"), el("div", { class: "num" }, ["+" + r.points]),
+        el("p", { style: "margin:14px 0 26px;color:var(--n800);font-size:16px" }, [
+          r.capOk && r.flagOk && r.st >= 2 ? r.c.n + " теперь идёт в зачёт как изученная страна." : "Страна вернётся в подборку для повторения."
+        ]),
+        el("button", { class: "btn primary block", type: "button", onclick: next }, [last ? "Итоги сессии" : "Дальше"]),
+        el("div", { style: "margin-top:14px" }, [el("a", { class: "btn ghost block", href: "country.html?iso=" + r.c.f, style: "text-align:center" }, ["Открыть страницу страны"])])
+      ])
+    ])]);
+  }
+
+  function next() {
+    var n = st.i + 1;
+    if (n >= st.queue.length) {
+      if (st.score > (CA.progress.highScore || 0)) { CA.progress.highScore = st.score; CA.saveProgress(); }
+      st.view = "end"; render(); return;
+    }
+    st.i = n; st.capital = ""; st.filter = ""; st.round = newRound(st.queue[n]); render();
+  }
+
+  function viewEnd() {
+    var names = Object.keys(st.mistakes);
+    var right = el("div", {}, [el("h2", { style: "font-size:30px;line-height:34px;margin-bottom:18px" }, ["Стоит повторить"])]);
+    if (names.length) {
+      right.appendChild(el("div", { class: "list" }, names.map(function (n) {
+        return el("a", { class: "li clickable", href: "country.html?iso=" + st.mistakes[n].iso }, [
+          el("span", {}, [n]), el("span", { style: "color:var(--n700)" }, [st.mistakes[n].what])
+        ]);
+      })));
+      right.appendChild(el("div", { style: "margin-top:18px" }, [el("button", { class: "btn", type: "button", onclick: function () {
+        var isos = names.map(function (n) { return st.mistakes[n].iso; });
+        start(st.region, isos.length, COUNTRIES.filter(function (c) { return isos.indexOf(c.f) >= 0; }));
+      } }, ["Собрать раунд из этих стран"])]));
+    } else right.appendChild(el("p", { class: "verdict" }, ["Ни одной осечки. Такое бывает нечасто."]));
+
+    var sendWrap = el("div", { style: "margin-top:24px" });
+    if (st.submitMsg) sendWrap.appendChild(el("p", { style: "margin:0;font-size:16px;color:var(--n800)" }, [st.submitMsg]));
+    else if (!CA.currentDisplayName()) sendWrap.appendChild(el("p", { style: "margin:0;font-size:16px;color:var(--n800)" }, [
+      "Чтобы попасть в рейтинг недели, выберите титул в ", el("a", { href: "settings.html" }, ["настройках"]), "."
+    ]));
+    else sendWrap.appendChild(el("button", { class: "btn", type: "button", onclick: function (e) {
+      var b = e.currentTarget; b.disabled = true; b.textContent = "Отправляем…";
+      CA.submitToLeaderboard(st.region, st.queue.length, st.score, function (ok, err) {
+        st.submitMsg = ok ? "Результат отправлен в рейтинг недели." : ("Не получилось отправить: " + err);
+        st.submitted = ok; render();
+      });
+    } }, ["Отправить результат в рейтинг"]));
+
+    return el("div", { class: "screen" }, [
+      k(CA.regionName(st.region) + " · " + st.queue.length + " стран · сессия завершена"),
+      el("div", { class: "grid two", style: "margin-top:14px;align-items:start" }, [
+        el("div", {}, [
+          el("div", { class: "num" }, [String(st.score)]),
+          el("p", { class: "lede", style: "margin:14px 0 26px" }, ["очков за сессию. Личный рекорд — " + (CA.progress.highScore || 0) + "."]),
+          el("div", { class: "row" }, [
+            el("button", { class: "btn primary", type: "button", onclick: function () { start(st.region, st.queue.length); } }, ["Играть ещё раз"]),
+            el("button", { class: "btn ghost", type: "button", onclick: function () { st.view = "regions"; render(); } }, ["Другой регион"])
+          ]),
+          sendWrap
+        ]),
+        right
+      ])
+    ]);
+  }
+
+  if (forcedIso) {
+    var c = CA.byIso(forcedIso);
+    if (c) { start(c.r, 1, [c]); return; }
+  }
+  render();
+});
+</script>
+</body>
+</html>

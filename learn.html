@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Карточки — Cosmopolitan</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main id="app"></main>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+CA.ready(function () {
+  var el = CA.el, k = CA.kicker, app = document.getElementById("app");
+  var st = { view: "regions", region: null, queue: [], i: 0, flipped: false };
+
+  function render() {
+    app.innerHTML = "";
+    CA.mount(st.view === "regions" ? viewRegions() : viewCard());
+    window.scrollTo(0, 0);
+  }
+
+  function viewRegions() {
+    return el("div", { class: "screen" }, [
+      el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px" }, [
+        el("a", { href: "index.html" }, ["← На главную"]), k("Режим обучения")
+      ]),
+      el("h1", { class: "big", style: "font-size:clamp(32px,4.5vw,48px);margin-bottom:14px" }, ["Карточки без таймера"]),
+      el("p", { class: "lede", style: "margin:0 0 28px" }, ["На лице карточки флаг и страна, на обороте — столица, координаты и факт о флаге."]),
+      el("div", { class: "tile-list" }, ["world"].concat(CA.REGION_ORDER).map(function (key) {
+        var list = CA.regionCountries(key), locked = !CA.unlocked(key);
+        return el("a", { class: "tile", href: locked ? "premium.html" : "#", onclick: function (e) {
+          if (locked) return;
+          e.preventDefault();
+          st.region = key; st.queue = CA.shuffle(list); st.i = 0; st.flipped = false; st.view = "card"; render();
+        } }, [
+          el("div", { style: "display:flex;align-items:baseline;gap:12px" }, [
+            el("h3", {}, [CA.regionName(key)]), locked ? el("span", { class: "tag" }, ["Премиум"]) : null
+          ]),
+          el("div", { class: "meta" }, [el("span", {}, [list.length + " карточек"]), el("span", {}, [CA.studiedCount(key) + " изучено"])])
+        ]);
+      }))
+    ]);
+  }
+
+  function viewCard() {
+    var c = st.queue[st.i];
+    var front = el("div", { style: "cursor:pointer", onclick: function () { st.flipped = !st.flipped; render(); } }, [
+      el("img", { src: CA.flagUrl(c.f, "w640"), alt: "Флаг " + c.n, style: "display:block;width:100%;aspect-ratio:3/2;object-fit:cover;border:1px solid var(--divider)" }),
+      el("div", { style: "font-weight:600;font-size:clamp(26px,4vw,44px);line-height:1.1;margin-top:18px" }, [c.n]),
+      el("div", { style: "font-size:15px;color:var(--n700);margin-top:6px" }, ["Нажмите на карточку, чтобы перевернуть"])
+    ]);
+    var back = el("div", {}, []);
+    if (st.flipped) {
+      back.appendChild(k("Оборот карточки"));
+      back.appendChild(el("div", { style: "font-weight:600;font-size:clamp(30px,5vw,56px);line-height:1.08;margin-top:10px" }, [c.c]));
+      back.appendChild(el("p", { class: "verdict", style: "margin:10px 0 0" }, [CA.regionName(c.r) + " · " + c.lat.toFixed(2) + ", " + c.lng.toFixed(2)]));
+      if (FLAG_FACTS[c.f]) back.appendChild(el("div", { class: "fact" }, [k("О флаге", "ac"), el("p", {}, [FLAG_FACTS[c.f]])]));
+    } else {
+      back.appendChild(el("p", { class: "lede", style: "margin:0;color:var(--n700)" }, ["На обороте — столица, координаты и факт о флаге этой страны."]));
+    }
+    back.appendChild(el("div", { class: "row", style: "margin-top:26px" }, [
+      el("button", { class: "btn ghost", type: "button", onclick: function () { st.i = Math.max(0, st.i - 1); st.flipped = false; render(); } }, ["← Назад"]),
+      el("button", { class: "btn primary", type: "button", onclick: function () { st.i = Math.min(st.queue.length - 1, st.i + 1); st.flipped = false; render(); } }, ["Дальше →"]),
+      el("a", { class: "btn", href: "country.html?iso=" + c.f }, ["Страница страны"])
+    ]));
+
+    return el("div", { class: "screen" }, [
+      el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px;gap:16px;flex-wrap:wrap" }, [
+        el("a", { href: "#", onclick: function (e) { e.preventDefault(); st.view = "regions"; render(); } }, ["← Регионы"]),
+        k(CA.regionName(st.region) + " · карточка " + (st.i + 1) + " из " + st.queue.length)
+      ]),
+      el("div", { class: "grid two", style: "align-items:center" }, [front, back])
+    ]);
+  }
+
+  render();
+});
+</script>
+</body>
+</html>

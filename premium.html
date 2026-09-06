@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Полная версия — Cosmopolitan</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main id="app"></main>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+CA.ready(function () {
+  var el = CA.el, k = CA.kicker, p = CA.progress, app = document.getElementById("app");
+
+  function render() {
+    app.innerHTML = "";
+    var locked = [["africa", "Африка"], ["namerica", "Северная Америка"], ["samerica", "Южная Америка"], ["oceania", "Австралия и Океания"]];
+    CA.mount(el("div", { class: "screen", style: "max-width:680px" }, [
+      el("h1", { class: "big", style: "font-size:clamp(30px,4vw,44px);margin-bottom:14px" }, ["Полная версия"]),
+      el("p", { class: "lede", style: "margin:0 0 26px" }, ["Европа и Азия открыты бесплатно — это 91 страна. Остальные регионы и арена «Весь мир» приходят с полной версией."]),
+      el("div", { class: "list" }, locked.map(function (r) {
+        return el("div", { class: "li" }, [
+          el("span", {}, [r[1]]),
+          el("span", { class: p.premium ? "" : "tag" }, [p.premium ? "открыт" : CA.regionCountries(r[0]).length + " стран"])
+        ]);
+      })),
+      el("div", { style: "margin-top:26px" }, [
+        p.premium
+          ? el("a", { class: "btn primary", href: "play.html" }, ["Все регионы открыты — играть"])
+          : el("button", { class: "btn primary", type: "button", onclick: function () { p.premium = true; CA.saveProgress(); render(); } }, ["Открыть все регионы"])
+      ]),
+      el("div", { style: "margin-top:32px" }, [k("Подсказки · доступно " + (p.hints || 0))]),
+      el("p", { style: "margin:8px 0 0;font-size:16px;color:var(--n800);max-width:52ch" }, ["Подсказка открывает первые буквы столицы на шаге 1."]),
+      el("div", { style: "margin-top:14px" }, [
+        el("button", { class: "btn ghost", type: "button", onclick: function () { p.hints = (p.hints || 0) + 1; CA.saveProgress(); render(); } }, ["Получить подсказку за просмотр рекламы"])
+      ]),
+      el("p", { style: "margin-top:32px;font-size:15px;line-height:25px;color:var(--n700)" }, ["Демонстрационный экран: покупка и показ рекламы имитируются, реальная оплата не выполняется."])
+    ]));
+  }
+  render();
+});
+</script>
+</body>
+</html>
