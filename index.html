@@ -7,6 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- РСЯ: вставь сюда код-загрузчик из личного кабинета (partner.yandex.ru) — он выдаётся один раз при создании первого блока и одинаков для всех блоков сайта -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Рейтинг недели: вставь сюда Project URL и anon public key из Supabase (Project Settings → API)
+  window.SUPABASE_URL = "https://examtwlpaeheturjkacc.supabase.co";
+  window.SUPABASE_ANON_KEY = "sb_publishable_ivn0-52SCJ61gQ2vC7LyZw_QLvz6Ymy";
+</script>
 <style>
 
   :root{
@@ -42,6 +49,16 @@
     position:fixed;right:-90px;bottom:-90px;width:460px;height:460px;
     color:var(--brass);opacity:.05;pointer-events:none;z-index:0;
   }
+  .site-footer{position:relative;z-index:1;text-align:center;padding:18px 12px 26px;font-size:12px;color:var(--ink-dim);}
+  .site-footer a{color:var(--ink-dim);text-decoration:none;border-bottom:1px dotted var(--line);margin:0 8px;}
+  .site-footer a:hover{color:var(--brass);border-color:var(--brass);}
+  .cookie-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:200;max-width:520px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 6px 24px rgba(0,0,0,.35);}
+  html.light .cookie-bar{box-shadow:0 6px 24px rgba(0,0,0,.12);}
+  .cookie-bar p{margin:0;font-size:13px;color:var(--ink);flex:1;min-width:200px;line-height:1.45;}
+  .cookie-bar a{color:var(--brass);}
+  .cookie-bar button{background:var(--brass);color:var(--bg-2);border-radius:calc(var(--radius) - 1px);padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .cookie-bar button:hover{filter:brightness(1.08);}
+  @media (max-width:480px){.cookie-bar{flex-direction:column;align-items:stretch;}.cookie-bar button{width:100%;}}
   button{font-family:inherit;border:none;background:none;color:inherit;padding:0;margin:0;appearance:none;-webkit-appearance:none;cursor:pointer;}
   #app{min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:1;}
   button:focus-visible, input:focus-visible, [tabindex]:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:2px;}
@@ -201,6 +218,27 @@
   <circle cx="100" cy="100" r="4" fill="currentColor"/>
 </svg>
 <div id="app"></div>
+<footer class="site-footer">
+  <a href="about.html">О проекте</a>·<a href="privacy.html">Политика конфиденциальности</a>
+</footer>
+<div id="cookieBar" class="cookie-bar" style="display:none;">
+  <p>Этот атлас работает на печеньках 🍪 (обычных веб-куки — вкусных, увы, не завезли). Помнят твой прогресс и когда-нибудь честно подружатся с рекламой. Подробнее — в <a href="privacy.html">политике конфиденциальности</a>.</p>
+  <button id="cookieBarOk">Хрум, понятно</button>
+</div>
+<script>
+(function(){
+  try{
+    if(!localStorage.getItem("cookieNoticeSeen")){
+      var bar=document.getElementById("cookieBar");
+      bar.style.display="flex";
+      document.getElementById("cookieBarOk").addEventListener("click",function(){
+        bar.style.display="none";
+        localStorage.setItem("cookieNoticeSeen","1");
+      });
+    }
+  }catch(e){}
+})();
+</script>
 <script>
 (function(){
 "use strict";
@@ -569,11 +607,118 @@ function startRound(country){
   };
   render();
 }
+/* ---------- РЕЙТИНГ НЕДЕЛИ (Supabase) ---------- */
+var sb = null;
+try{
+  if(window.supabase && window.SUPABASE_URL && window.SUPABASE_URL.indexOf("ВСТАВЬ")===-1){
+    sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  }
+}catch(e){}
+
+function regionLabelFor(key){
+  return key==="world" ? "Весь мир" : (REGION_META[key] ? REGION_META[key].name : key);
+}
+
+function submitToLeaderboard(regionKey, countries, points, onDone){
+  if(!sb){ onDone && onDone(false,"Рейтинг ещё не подключён"); return; }
+  var name = progress.name;
+  if(!name){
+    name = window.prompt("Как тебя записать в рейтинге? (можно имя, ник или класс)");
+    if(!name){ onDone && onDone(false,"Отменено"); return; }
+    progress.name = name.slice(0,40); saveProgress(progress);
+  }
+  sb.from("leaderboard").insert({
+    name: progress.name.slice(0,40),
+    region: regionLabelFor(regionKey),
+    countries: countries,
+    points: points
+  }).then(function(res){
+    if(res.error){ onDone && onDone(false, res.error.message); }
+    else{ onDone && onDone(true); }
+  });
+}
+
+function fetchLeaderboard(cb){
+  if(!sb){ cb([], "Рейтинг ещё не подключён"); return; }
+  var weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+  sb.from("leaderboard").select("*").gte("created_at", weekAgo).order("points",{ascending:false}).limit(100)
+    .then(function(res){
+      if(res.error){ cb([], res.error.message); return; }
+      var seen = {}, out = [];
+      (res.data||[]).forEach(function(row){
+        var key = row.name.toLowerCase();
+        if(!seen[key]){ seen[key]=true; out.push(row); }
+      });
+      cb(out, null);
+    });
+}
+
+function renderLeaderboard(){
+  var wrap = el("div",{});
+  wrap.appendChild(topNav("Меню", function(){ state.screen="menu"; render(); }));
+  var body = el("div",{class:"screen"},[
+    el("div",{class:"brand"},[el("h1",{style:"font-size:22px"},["Рейтинг недели"]),
+      el("p",{},["Считаем лучшую сессию за 7 дней. Имя меняется в настройках."])]
+    )
+  ]);
+  var box = el("div",{class:"stats-block"},[el("p",{style:"margin:0;color:var(--ink-dim);font-size:13.5px;"},["Загружаем…"])]);
+  body.appendChild(box);
+  wrap.appendChild(body);
+
+  if(!sb){
+    box.innerHTML = "";
+    box.appendChild(el("p",{style:"margin:0;color:var(--ink-dim);font-size:13.5px;line-height:1.5;"},["Рейтинг ещё не подключён — это появится совсем скоро."]));
+    return wrap;
+  }
+
+  fetchLeaderboard(function(rows, err){
+    box.innerHTML = "";
+    if(err){
+      box.appendChild(el("p",{style:"margin:0;color:var(--bad);font-size:13.5px;"},["Не получилось загрузить рейтинг. Попробуй чуть позже."]));
+      return;
+    }
+    if(!rows.length){
+      box.appendChild(el("p",{style:"margin:0;color:var(--ink-dim);font-size:13.5px;"},["Пока пусто — сыграй сессию и стань первой в списке!"]));
+      return;
+    }
+    rows.slice(0,20).forEach(function(r,i){
+      var isMe = progress.name && r.name.toLowerCase()===progress.name.toLowerCase();
+      box.appendChild(el("div",{class:"summary-row",style:isMe?"background:var(--good-bg);border-radius:4px;padding-left:8px;padding-right:8px;":""},[
+        el("div",{},[
+          el("div",{style:"font-family:var(--serif);font-weight:600;"},[(i+1)+". "+r.name]),
+          el("div",{style:"font-size:12px;color:var(--ink-dim);margin-top:2px;"},[r.region+" · "+r.countries+" стран"])
+        ]),
+        el("div",{class:"val good"},[String(r.points)])
+      ]));
+    });
+  });
+
+  return wrap;
+}
 function useHint(){
   if(!progress.hints || progress.hints<=0) return;
   progress.hints -= 1; saveProgress(progress);
   state.round.hintText = state.round.country.c.slice(0,2);
   render();
+}
+function watchAdForHint(){
+  if(typeof window.yaContextCb === "undefined"){ return; }
+  var isMobile = window.matchMedia("(max-width: 640px)").matches;
+  window.yaContextCb.push(function(){
+    Ya.Context.AdvManager.render({
+      // TODO: замени на реальные ID блоков из личного кабинета РСЯ (Rewarded, отдельно для десктопа и мобилки)
+      blockId: isMobile ? "REWARDED_BLOCK_ID_MOBILE" : "REWARDED_BLOCK_ID_DESKTOP",
+      type: "rewarded",
+      platform: isMobile ? "touch" : "desktop",
+      onRewarded: function(isRewarded){
+        if(isRewarded){
+          progress.hints += 1;
+          saveProgress(progress);
+          useHint();
+        }
+      }
+    });
+  });
 }
 function handleCapitalSubmit(value){
   var r = state.round;
@@ -703,6 +848,7 @@ function render(){
   else if(state.screen==="flagSessionEnd") app.appendChild(renderFlagSessionEnd());
   else if(state.screen==="stats") app.appendChild(renderStats());
   else if(state.screen==="settings") app.appendChild(renderSettings());
+  else if(state.screen==="leaderboard") app.appendChild(renderLeaderboard());
 }
 function topNav(backLabel, backFn, wide){
   return el("div",{class:"top-nav"+(wide?" wide":"")},[
@@ -753,6 +899,10 @@ function renderMenu(){
       ]),
       el("button",{class:"menu-btn",onclick:function(){ state.screen="stats"; render(); }},[
         el("div",{},[el("div",{class:"title"},["Моя статистика"]), el("div",{class:"sub"},["Прогресс, рекорд, сложные страны"])]),
+        el("div",{class:"arrow"},["›"])
+      ]),
+      el("button",{class:"menu-btn",onclick:function(){ state.screen="leaderboard"; render(); }},[
+        el("div",{},[el("div",{class:"title"},["🏆 Рейтинг недели"]), el("div",{class:"sub"},["Лучшие сессии всех игроков за 7 дней"])]),
         el("div",{class:"arrow"},["›"])
       ]),
       el("button",{class:"menu-btn",onclick:function(){ state.screen="premium"; render(); }},[
@@ -876,8 +1026,12 @@ function renderGame(){
     input.addEventListener("keydown", function(e){ if(e.key==="Enter") submit(); });
     row.appendChild(input); row.appendChild(submitBtn);
     body.appendChild(row);
-    if(!r.capitalAnswered && progress.hints>0){
-      body.appendChild(el("button",{class:"hint-btn",onclick:useHint},["💡 Подсказка ("+progress.hints+")"]));
+    if(!r.capitalAnswered){
+      if(progress.hints>0){
+        body.appendChild(el("button",{class:"hint-btn",onclick:useHint},["💡 Подсказка ("+progress.hints+")"]));
+      }else{
+        body.appendChild(el("button",{class:"hint-btn",onclick:watchAdForHint},["🎬 Смотреть рекламу за подсказку"]));
+      }
     }
     if(r.hintText){ body.appendChild(el("div",{class:"map-hint"},["Начинается на: "+r.hintText+"…"])); }
     if(r.capitalAnswered){
@@ -974,6 +1128,13 @@ function renderSessionEnd(){
   var wrap = el("div",{});
   wrap.appendChild(topNav("Меню", function(){ state.screen="menu"; render(); }));
   var mistakes = Object.keys(state.sessionMistakes);
+  var lbBtn = el("button",{class:"btn-secondary",onclick:function(){
+    lbBtn.disabled = true; lbBtn.textContent = "Отправляем…";
+    submitToLeaderboard(state.regionKey, state.queue.length, state.sessionScore, function(ok, err){
+      lbBtn.disabled = false;
+      lbBtn.textContent = ok ? "✅ Отправлено в рейтинг" : "🏆 Отправить в рейтинг недели";
+    });
+  }},["🏆 Отправить в рейтинг недели"]);
   var body = el("div",{class:"screen"},[
     el("div",{class:"end-title"},["Сессия завершена"]),
     el("div",{class:"summary-points"},[
@@ -985,6 +1146,7 @@ function renderSessionEnd(){
       el("div",{},mistakes.slice(0,8).map(function(n){ return el("div",{class:"hard-row"},[el("span",{},[n])]); }))
     ]) : null,
     el("button",{class:"btn-primary",onclick:function(){ startSession(state.regionKey,"quiz", state.queue.length); }},["Играть ещё раз"]),
+    lbBtn,
     el("button",{class:"btn-secondary",onclick:function(){ state.screen="regionSelect"; render(); }},["Другой регион"])
   ]);
   wrap.appendChild(body);
@@ -1112,9 +1274,14 @@ function renderSettings(){
         el("div",{class:"switch"+(isLight?" on":""),onclick:function(evt){ document.documentElement.classList.toggle("light"); evt.currentTarget.classList.toggle("on"); }},[el("div",{class:"dot"})])
       ])
     ]),
+    el("div",{class:"stats-block"},[
+      el("div",{class:"stats-title"},["РЕЙТИНГ НЕДЕЛИ"]),
+      el("div",{style:"font-size:12.5px;color:var(--ink-dim);margin-bottom:10px;"},["Это имя увидят другие игроки в общем рейтинге. Можно указать любое — необязательно настоящее."]),
+      el("input",{class:"capital-input",style:"width:100%",placeholder:"Например, Марина",value:progress.name||"",oninput:function(e){ progress.name=e.target.value; saveProgress(progress); }})
+    ]),
     el("button",{class:"btn-secondary",onclick:function(){
       if(confirm("Сбросить весь прогресс, рекорд и полную версию?")){
-        progress = {perCountry:{}, highScore:0, totalRounds:0, premium:false, hints:0};
+        progress = {perCountry:{}, highScore:0, totalRounds:0, premium:false, hints:0, name:progress.name||""};
         saveProgress(progress); state.screen="menu"; render();
       }
     }},["Сбросить прогресс"])
