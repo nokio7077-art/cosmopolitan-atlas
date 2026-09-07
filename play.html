@@ -6,6 +6,7 @@
 <title>Играть — Cosmopolitan</title>
 <meta name="description" content="Раунд из трёх шагов: столица, флаг и точка на карте мира.">
 <link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://flagcdn.com" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   window.SUPABASE_URL = "https://examtwlpaeheturjkacc.supabase.co";
@@ -153,7 +154,7 @@ CA.ready(function () {
       return el("button", { class: cls, type: "button", title: c.n, onclick: function () {
         if (r.flagDone) return;
         r.flagDone = true; r.flagOk = c.f === r.c.f; r.pick = c.f; render();
-      } }, [el("img", { src: CA.flagUrl(c.f, "w80"), alt: c.n, loading: "lazy" })]);
+      } }, [el("img", { src: CA.flagUrl(c.f, "w80"), alt: c.n, loading: "lazy", decoding: "async" })]);
     }));
     var box = el("div", { style: "padding-top:36px" }, [
       el("div", { style: "display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px" }, [
@@ -173,8 +174,8 @@ CA.ready(function () {
   function stepMap(r) {
     var pins = [];
     if (r.mapDone) {
-      pins.push({ x: r.click.x, y: r.click.y, r: 6, fill: "#d6006c" });
-      if (r.st < 3) pins.push({ x: r.target.x, y: r.target.y, r: 5, fill: "#0088b0" });
+      pins.push({ x: r.click.x, y: r.click.y, r: 8, fill: "#d6006c" });
+      if (r.st < 3) pins.push({ x: r.target.x, y: r.target.y, r: 7, fill: "#0088b0" });
     }
     var map = CA.mapSvg({
       highlight: r.mapDone ? r.c.f : null, highlightFill: "#99e0ff", pins: pins,
@@ -185,6 +186,10 @@ CA.ready(function () {
         var t = CA.project(r.c.lng, r.c.lat);
         var dist = Math.sqrt(Math.pow(x - t.x, 2) + Math.pow(y - t.y, 2));
         var tol2 = 1000 * (CA.SIZE_TOL[r.c.s] || 0.038), tol3 = tol2 * 0.45;
+        // На маленьком экране карта физически меньше — палец на телефоне не может быть
+        // ювелирно точным, поэтому не даём зоне допуска становиться уже примерно 28px
+        var minTol = (28 / b.width) * 1000;
+        tol2 = Math.max(tol2, minTol); tol3 = Math.max(tol3, minTol * 0.5);
         var ins = CA.insideCountry(r.c.f, lng, lat);
         r.st = ins === null ? (dist <= tol3 ? 3 : (dist <= tol2 ? 2 : 0))
           : (ins ? (dist <= tol3 ? 3 : 2) : (dist <= tol2 * 0.5 ? 2 : 0));

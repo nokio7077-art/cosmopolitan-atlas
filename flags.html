@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Угадай страну по флагу — Cosmopolitan</title>
 <link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://flagcdn.com" crossorigin>
 </head>
 <body>
 <main id="app"></main>
@@ -97,7 +98,7 @@ CA.ready(function () {
       ]),
       el("hr", { class: "hairline" }),
       el("div", { class: "grid two", style: "margin-top:36px;align-items:center" }, [
-        el("img", { src: CA.flagUrl(c.f, "w640"), alt: "", style: "display:block;width:100%;aspect-ratio:3/2;object-fit:contain;background:var(--n200);box-shadow:var(--sh-sm)" }),
+        el("img", { src: CA.flagUrl(c.f, "w640"), alt: "", decoding: "async", style: "display:block;width:100%;aspect-ratio:3/2;object-fit:contain;background:var(--n200);box-shadow:var(--sh-sm)" }),
         right
       ])
     ]);

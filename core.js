@@ -3,6 +3,15 @@
   "use strict";
 
   var STORE_KEY = "geomaster_v3";
+  // Личная статистика: счётчик Яндекс Метрики
+  var YANDEX_METRIKA_ID = 112345804;
+  (function(m,e,t,r,i,k,a){
+    m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+    m[i].l=1*new Date();
+    for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+    k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+  })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id='+YANDEX_METRIKA_ID, 'ym');
+  window.ym(YANDEX_METRIKA_ID, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
   var REGION_ORDER = ["europe", "asia", "africa", "namerica", "samerica", "oceania"];
   var REGION_META = {
     europe: { name: "Европа" }, asia: { name: "Азия" }, africa: { name: "Африка" },
@@ -35,7 +44,7 @@
   }
   function kicker(text, cls) { return el("div", { class: "kicker" + (cls ? " " + cls : "") }, [text]); }
   function bar(pct) { return el("div", { class: "bar" }, [el("i", { style: "width:" + pct + "%" })]); }
-  function flagUrl(f, size) { return "https://flagcdn.com/" + (size || "w160") + "/" + f + ".png"; }
+  function flagUrl(f, size) { return "https://flagcdn.com/" + (size || "w160") + "/" + f + ".webp"; }
   function stars(n) { return new Array(n + 1).join("★") + new Array(4 - n).join("☆"); }
 
   function shuffle(a) {

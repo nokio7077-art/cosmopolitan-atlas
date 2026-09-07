@@ -6,6 +6,7 @@
 <title>Cosmopolitan — атлас памяти: столицы, флаги, карта мира</title>
 <meta name="description" content="Игра для изучения географии: столицы, флаги и расположение 192 стран на карте мира, с фактом о каждом флаге.">
 <link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://flagcdn.com" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   window.SUPABASE_URL = "https://examtwlpaeheturjkacc.supabase.co";
@@ -37,7 +38,7 @@ CA.ready(function () {
       resultsFor(e.target.value).forEach(function (c) {
         resBox.appendChild(el("a", { class: "li clickable", href: "country.html?iso=" + c.f }, [
           el("span", { style: "display:flex;align-items:center;gap:12px" }, [
-            el("img", { src: CA.flagUrl(c.f, "w40"), alt: "", style: "width:36px;aspect-ratio:4/3;object-fit:contain;background:var(--n200)" }),
+            el("img", { src: CA.flagUrl(c.f, "w40"), alt: "", loading: "lazy", decoding: "async", style: "width:36px;aspect-ratio:4/3;object-fit:contain;background:var(--n200)" }),
             el("b", { style: "font-weight:600" }, [c.n])
           ]),
           el("span", { style: "color:var(--n700);font-size:15px" }, [c.c + " · " + CA.regionName(c.r)])
@@ -87,7 +88,7 @@ CA.ready(function () {
     ]),
     el("div", { style: "display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px" }, featured.map(function (c) {
       return el("a", { class: "card", href: "country.html?iso=" + c.f }, [
-        el("img", { src: CA.flagUrl(c.f), alt: "Флаг " + c.n }),
+        el("img", { src: CA.flagUrl(c.f), alt: "Флаг " + c.n, loading: "lazy", decoding: "async" }),
         el("div", { class: "t" }, [c.n]),
         el("div", { class: "m" }, [c.c + " · " + CA.regionName(c.r)])
       ]);

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Страна — Cosmopolitan</title>
 <link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://flagcdn.com" crossorigin>
 </head>
 <body>
 <main id="app"></main>
@@ -46,7 +47,7 @@ CA.ready(function () {
     el("h1", { class: "big", style: "font-size:clamp(38px,7vw,76px);margin-bottom:26px" }, [c.n]),
     el("div", { class: "grid two", style: "align-items:start" }, [
       el("div", {}, [
-        el("img", { src: CA.flagUrl(c.f, "w640"), alt: "Флаг " + c.n, style: "display:block;width:100%;aspect-ratio:3/2;object-fit:contain;background:var(--n200);border:1px solid var(--divider)" }),
+        el("img", { src: CA.flagUrl(c.f, "w640"), alt: "Флаг " + c.n, decoding: "async", style: "display:block;width:100%;aspect-ratio:3/2;object-fit:contain;background:var(--n200);border:1px solid var(--divider)" }),
         el("table", { style: "margin-top:18px" }, [el("tbody", {}, rows.map(function (r) {
           return el("tr", {}, [el("td", {}, [r[0]]), el("td", { style: "text-align:right" }, [r[1]])]);
         }))]),
