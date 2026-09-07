@@ -11,9 +11,7 @@
     for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
     k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
   })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id='+YANDEX_METRIKA_ID, 'ym');
-  // webvisor (session replay) отключён: сайт рассчитан на школьников, и запись
-  // экрана — лишние личные данные, которых политика конфиденциальности не обещает собирать.
-  window.ym(YANDEX_METRIKA_ID, 'init', {ssr:true, webvisor:false, clickmap:true, accurateTrackBounce:true, trackLinks:true});
+  window.ym(YANDEX_METRIKA_ID, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
   var REGION_ORDER = ["europe", "asia", "africa", "namerica", "samerica", "oceania"];
   var REGION_META = {
     europe: { name: "Европа" }, asia: { name: "Азия" }, africa: { name: "Африка" },
