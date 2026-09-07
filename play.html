@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://mc.yandex.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://flagcdn.com https://mc.yandex.ru; connect-src 'self' https://examtwlpaeheturjkacc.supabase.co https://mc.yandex.ru">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <title>Играть — Cosmopolitan</title>
 <meta name="description" content="Раунд из трёх шагов: столица, флаг и точка на карте мира.">
 <link rel="stylesheet" href="styles.css">
 <link rel="preconnect" href="https://flagcdn.com" crossorigin>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js" integrity="sha384-CLZeq1dk8+Uzrs7TVvBUdlFoV5F0DMqgRoeHa8g5wJcuPe5SkVfEvdxB0ZuzlnBQ" crossorigin="anonymous"></script>
 <script>
   window.SUPABASE_URL = "https://examtwlpaeheturjkacc.supabase.co";
   window.SUPABASE_ANON_KEY = "sb_publishable_ivn0-52SCJ61gQ2vC7LyZw_QLvz6Ymy";
@@ -23,7 +25,8 @@ CA.ready(function () {
   var forcedIso = CA.qs("iso");
   var st = {
     view: "regions", region: null, queue: [], i: 0, round: null,
-    score: 0, combo: 0, mistakes: {}, capital: "", filter: "", submitted: false, submitMsg: null
+    score: 0, combo: 0, mistakes: {}, capital: "", filter: "", submitted: false, submitMsg: null,
+    difficulty: "easy"
   };
 
   function render() {
@@ -36,8 +39,19 @@ CA.ready(function () {
     window.scrollTo(0, 0);
   }
   function newRound(c) {
-    return { c: c, step: "capital", capOk: false, capDone: false, hint: null,
+    return { c: c, step: "capital", capOk: false, capDone: false, hint: null, capOptions: null,
       flagDone: false, flagOk: false, pick: null, mapDone: false, st: 0, click: null, target: null, points: 0, mult: 1 };
+  }
+  function capOptionsFor(c) {
+    var seen = {}; seen[CA.norm(c.c)] = true;
+    var pool = CA.shuffle(COUNTRIES.filter(function (x) { return x.f !== c.f; }));
+    var picks = [];
+    for (var i = 0; i < pool.length && picks.length < 3; i++) {
+      var key = CA.norm(pool[i].c);
+      if (seen[key]) continue;
+      seen[key] = true; picks.push(pool[i].c);
+    }
+    return CA.shuffle(picks.concat([c.c]));
   }
   function start(regionKey, size, forced) {
     var list = forced || CA.regionCountries(regionKey);
@@ -78,7 +92,20 @@ CA.ready(function () {
         k(CA.regionName(st.region) + " · " + list.length + " стран")
       ]),
       el("h1", { class: "big", style: "font-size:clamp(32px,4.5vw,48px);margin-bottom:14px" }, ["Сколько стран разыграть?"]),
-      el("p", { class: "lede", style: "margin:0 0 28px" }, ["Десять — короткая разминка, весь регион — серьёзная работа. Прогресс считается в любом случае."]),
+      el("p", { class: "lede", style: "margin:0 0 22px" }, ["Десять — короткая разминка, весь регион — серьёзная работа. Прогресс считается в любом случае."]),
+      el("div", { style: "margin-bottom:28px" }, [
+        k("Сложность · шаг «столица»"),
+        el("div", { class: "row", style: "margin-top:10px" }, [
+          el("button", {
+            class: "btn" + (st.difficulty === "easy" ? " primary" : " ghost"), type: "button",
+            onclick: function () { st.difficulty = "easy"; render(); }
+          }, ["Легко · выбрать из 4 вариантов"]),
+          el("button", {
+            class: "btn" + (st.difficulty === "hard" ? " primary" : " ghost"), type: "button",
+            onclick: function () { st.difficulty = "hard"; render(); }
+          }, ["Сложно · ввести вручную"])
+        ])
+      ]),
       el("div", { class: "row" }, [
         el("button", { class: "btn primary", type: "button", onclick: function () { start(st.region, 10); } }, ["10 стран"]),
         el("button", { class: "btn", type: "button", onclick: function () { start(st.region, 20); } }, ["20 стран"]),
@@ -111,7 +138,15 @@ CA.ready(function () {
       k("Шаг 1 из 3 · столица", "ac"),
       el("h1", { class: "big", style: "margin:14px 0 26px" }, [r.c.n])
     ]);
-    if (!r.capDone) {
+    if (!r.capDone && st.difficulty === "easy") {
+      if (!r.capOptions) r.capOptions = capOptionsFor(r.c);
+      box.appendChild(el("div", { class: "options" }, r.capOptions.map(function (opt) {
+        return el("button", {
+          class: "btn", type: "button",
+          onclick: function () { st.capital = opt; r.capDone = true; r.capOk = opt === r.c.c; render(); }
+        }, [opt]);
+      })));
+    } else if (!r.capDone) {
       var input = el("input", { class: "input", id: "cap", type: "text", placeholder: "Введите название", autocomplete: "off", style: "margin-top:10px;font-size:20px",
         oninput: function (e) { st.capital = e.target.value; },
         onkeydown: function (e) { if (e.key === "Enter") submitCap(); } });
