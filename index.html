@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://mc.yandex.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://flagcdn.com https://mc.yandex.ru; connect-src 'self' https://examtwlpaeheturjkacc.supabase.co https://mc.yandex.ru">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <title>Cosmopolitan — атлас памяти: столицы, флаги, карта мира</title>
 <meta name="description" content="Игра для изучения географии: столицы, флаги и расположение 192 стран на карте мира, с фактом о каждом флаге.">
 <link rel="stylesheet" href="styles.css">
 <link rel="preconnect" href="https://flagcdn.com" crossorigin>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js" integrity="sha384-CLZeq1dk8+Uzrs7TVvBUdlFoV5F0DMqgRoeHa8g5wJcuPe5SkVfEvdxB0ZuzlnBQ" crossorigin="anonymous"></script>
 <script>
   window.SUPABASE_URL = "https://examtwlpaeheturjkacc.supabase.co";
   window.SUPABASE_ANON_KEY = "sb_publishable_ivn0-52SCJ61gQ2vC7LyZw_QLvz6Ymy";
@@ -80,7 +82,7 @@ CA.ready(function () {
     }))
   ]);
 
-  var featured = ["pt", "jp", "ke", "mx", "pe", "nz", "fi", "uz"].map(CA.byIso).filter(Boolean);
+  var featured = CA.shuffle(COUNTRIES).slice(0, 8);
   var index = el("div", { style: "padding-top:72px" }, [
     el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;gap:20px;margin-bottom:20px" }, [
       el("h2", { style: "font-size:32px;line-height:36px" }, ["Индекс стран"]),

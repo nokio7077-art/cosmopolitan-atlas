@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://mc.yandex.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://flagcdn.com https://mc.yandex.ru; connect-src 'self' https://examtwlpaeheturjkacc.supabase.co https://mc.yandex.ru">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <title>Политика конфиденциальности — Cosmopolitan</title>
 <meta name="description" content="Какие данные использует Cosmopolitan — Атлас памяти и что не собирается.">
 <link rel="stylesheet" href="styles.css">
@@ -22,7 +24,7 @@ CA.ready(function () {
     el("h2", {}, ["Какие данные использует сайт"]),
     el("p", {}, ["Игровой прогресс (счёт, пройденные регионы, настройки темы) сохраняется локально в браузере вашего устройства с помощью localStorage и никогда не передаётся и не сохраняется на сервере владельца сайта."]),
     el("p", {}, ["Для рейтинга недели сайт не запрашивает имя, никнейм или любые другие данные пользователя. Вместо этого при первом обращении к рейтингу автоматически присваивается игровой титул (например, «Штурман») и порядковый номер (например, №47) — случайный набор, не связанный ни с какими личными данными. Эта пара «титул + номер», а также результат сессии (регион, число стран, очки) сохраняются в общей базе данных, чтобы формировать рейтинг за неделю."]),
-    el("p", {}, ["Сайт может показывать рекламу через Рекламную сеть Яндекса. Для показа релевантной рекламы рекламная сеть может использовать файлы cookie и похожие технологии на вашем устройстве. Это происходит на стороне партнёрской рекламной сети, а не владельца сайта. Подробнее о том, как это работает — в ", el("a", { href: "https://yandex.ru/legal/confidential/", target: "_blank", rel: "noopener" }, ["политике конфиденциальности Яндекса"]), "."]),
+    el("p", {}, ["Сайт может показывать рекламу через Рекламную сеть Яндекса. Для показа релевантной рекламы рекламная сеть может использовать файлы cookie и похожие технологии на вашем устройстве. Это происходит на стороне партнёрской рекламной сети, а не владельца сайта. Подробнее о том, как это работает — в ", el("a", { href: "https://yandex.ru/legal/confidential/", target: "_blank", rel: "noopener noreferrer" }, ["политике конфиденциальности Яндекса"]), "."]),
 
     el("h2", {}, ["Что не собирается"]),
     el("p", {}, ["Владелец сайта не запрашивает и не хранит имя, email, телефон, ФИО или иные персональные данные пользователей, за исключением случаев, когда вы сами присылаете их по своей инициативе (например, написав на контактную почту)."]),
