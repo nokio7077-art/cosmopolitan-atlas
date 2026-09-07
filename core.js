@@ -44,7 +44,7 @@
   }
   function kicker(text, cls) { return el("div", { class: "kicker" + (cls ? " " + cls : "") }, [text]); }
   function bar(pct) { return el("div", { class: "bar" }, [el("i", { style: "width:" + pct + "%" })]); }
-  function flagUrl(f, size) { return "https://flagcdn.com/" + (size || "w160") + "/" + f + ".webp"; }
+  function flagUrl(f) { return "flags/" + f + ".svg"; }
   function stars(n) { return new Array(n + 1).join("★") + new Array(4 - n).join("☆"); }
 
   function shuffle(a) {
