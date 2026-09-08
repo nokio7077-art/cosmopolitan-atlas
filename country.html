@@ -11,7 +11,17 @@
 <link rel="icon" href="favicon-16.png" type="image/png" sizes="16x16">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
-<title>Страна — Cosmopolitan</title>
+<link rel="canonical" href="https://cosmopolitan-atlas.online/country.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cosmopolitan — атлас памяти">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="Страна мира: столица, флаг и место на карте | Cosmopolitan">
+<meta property="og:description" content="Карточка страны: столица, флаг с фактом о нём, координаты и карта, где находится государство — включая самые маленькие страны мира.">
+<meta property="og:url" content="https://cosmopolitan-atlas.online/country.html">
+<meta property="og:image" content="https://cosmopolitan-atlas.online/favicon-512.png">
+<meta name="twitter:card" content="summary">
+<title>Страна мира: столица, флаг и место на карте | Cosmopolitan</title>
+<meta name="description" content="Карточка страны: столица, флаг с фактом о нём, координаты и карта, где находится государство — включая самые маленькие страны мира.">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -23,6 +33,12 @@ CA.ready(function () {
   var el = CA.el, k = CA.kicker;
   var c = CA.byIso((CA.qs("iso") || "").toLowerCase());
 
+  function setMeta(attr, key, value) {
+    var m = document.querySelector("meta[" + attr + '="' + key + '"]');
+    if (!m) { m = document.createElement("meta"); m.setAttribute(attr, key); document.head.appendChild(m); }
+    m.setAttribute("content", value);
+  }
+
   if (!c) {
     CA.mount(el("div", { class: "screen" }, [
       el("h1", { class: "big", style: "font-size:clamp(30px,4vw,44px);margin-bottom:14px" }, ["Страна не найдена"]),
@@ -32,7 +48,20 @@ CA.ready(function () {
     return;
   }
 
-  document.title = c.n + " — Cosmopolitan";
+  // Страница у всех стран одна, различаются они параметром iso. Поэтому заголовок,
+  // описание и canonical проставляем под конкретную страну: иначе в поиске окажется
+  // 192 одинаковых карточки.
+  var pageUrl = "https://cosmopolitan-atlas.online/country.html?iso=" + c.f;
+  document.title = c.n + " — столица " + c.c + ", флаг и место на карте";
+  setMeta("name", "description",
+    c.n + ": столица — " + c.c + ", флаг с фактом о нём, координаты и карта, где находится страна. " +
+    "Регион: " + CA.regionName(c.r) + ".");
+  setMeta("property", "og:title", document.title);
+  setMeta("property", "og:url", pageUrl);
+  setMeta("property", "og:image", "https://cosmopolitan-atlas.online/flags/" + c.f + ".svg");
+  var link = document.querySelector('link[rel="canonical"]');
+  if (link) link.setAttribute("href", pageUrl);
+
   var e = CA.entry(c.f);
   var rows = [
     ["Столица", c.c],
