@@ -14,34 +14,18 @@
 <script src="core.js"></script>
 <script>
 CA.ready(function () {
-  var el = CA.el, k = CA.kicker, p = CA.progress, app = document.getElementById("app");
-
-  function render() {
-    app.innerHTML = "";
-    var locked = [["africa", "Африка"], ["namerica", "Северная Америка"], ["samerica", "Южная Америка"], ["oceania", "Австралия и Океания"]];
-    CA.mount(el("div", { class: "screen", style: "max-width:680px" }, [
-      el("h1", { class: "big", style: "font-size:clamp(30px,4vw,44px);margin-bottom:14px" }, ["Полная версия"]),
-      el("p", { class: "lede", style: "margin:0 0 26px" }, ["Европа и Азия открыты бесплатно — это 91 страна. Остальные регионы и арена «Весь мир» приходят с полной версией."]),
-      el("div", { class: "list" }, locked.map(function (r) {
-        return el("div", { class: "li" }, [
-          el("span", {}, [r[1]]),
-          el("span", { class: p.premium ? "" : "tag" }, [p.premium ? "открыт" : CA.regionCountries(r[0]).length + " стран"])
-        ]);
-      })),
-      el("div", { style: "margin-top:26px" }, [
-        p.premium
-          ? el("a", { class: "btn primary", href: "play.html" }, ["Все регионы открыты — играть"])
-          : el("button", { class: "btn primary", type: "button", onclick: function () { p.premium = true; CA.saveProgress(); render(); } }, ["Открыть все регионы"])
-      ]),
-      el("div", { style: "margin-top:32px" }, [k("Подсказки · доступно " + (p.hints || 0))]),
-      el("p", { style: "margin:8px 0 0;font-size:16px;color:var(--n800);max-width:52ch" }, ["Подсказка открывает первые буквы столицы на шаге 1."]),
-      el("div", { style: "margin-top:14px" }, [
-        el("button", { class: "btn ghost", type: "button", onclick: function () { p.hints = (p.hints || 0) + 1; CA.saveProgress(); render(); } }, ["Получить подсказку за просмотр рекламы"])
-      ]),
-      el("p", { style: "margin-top:32px;font-size:15px;line-height:25px;color:var(--n700)" }, ["Демонстрационный экран: покупка и показ рекламы имитируются, реальная оплата не выполняется."])
-    ]));
-  }
-  render();
+  var el = CA.el, app = document.getElementById("app");
+  app.innerHTML = "";
+  CA.mount(el("div", { class: "screen", style: "max-width:680px" }, [
+    el("h1", { class: "big", style: "font-size:clamp(30px,4vw,44px);margin-bottom:14px" }, ["Здесь всё бесплатно"]),
+    el("p", { class: "lede", style: "margin:0 0 26px" }, [
+      "Платной версии нет: все 192 страны, все регионы и арена «Весь мир» открыты каждому, подсказки не кончаются. Рекламы на сайте тоже нет."
+    ]),
+    el("div", { class: "row" }, [
+      el("a", { class: "btn primary", href: "play.html" }, ["Играть"]),
+      el("a", { class: "btn ghost", href: "index.html" }, ["На главную"])
+    ])
+  ]));
 });
 </script>
 </body>
