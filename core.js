@@ -19,6 +19,9 @@
     oceania: { name: "Австралия и Океания" }
   };
   var FREE = ["europe", "asia"];
+  // Пока нет рекламы и продаж, платной версии не существует: все регионы открыты,
+  // подсказки не кончаются. Вернуть премиум — поставить здесь true.
+  var PREMIUM_ENABLED = false;
   var SIZE_TOL = { S: 0.022, M: 0.038, L: 0.065 };
   var PERSONAS = ["Капитан", "Штурман", "Юнга", "Боцман", "Шкипер", "Матрос", "Картограф", "Навигатор", "Мореход", "Путешественник", "Первопроходец", "Странник", "Кочевник", "Исследователь", "Следопыт", "Скиталец", "Флибустьер", "Пилигрим", "Землепроходец", "Открыватель"];
 
@@ -89,7 +92,12 @@
   }
   function regionName(key) { return key === "world" ? "Весь мир" : (REGION_META[key] ? REGION_META[key].name : "Мир"); }
   function studiedCount(key) { return regionCountries(key).filter(function (c) { return isStudied(c.f); }).length; }
-  function unlocked(key) { return !!progress.premium || FREE.indexOf(key) >= 0; }
+  function unlocked(key) { return !PREMIUM_ENABLED || !!progress.premium || FREE.indexOf(key) >= 0; }
+  function hintsLeft() { return PREMIUM_ENABLED ? (progress.hints || 0) : Infinity; }
+  function spendHint() {
+    if (!PREMIUM_ENABLED) return;
+    if (progress.hints > 0) { progress.hints--; saveProgress(); }
+  }
 
   /* --- сессия между страницами --- */
   var SESSION = "cosmopolitan_session";
@@ -201,6 +209,56 @@
   function currentDisplayName() {
     return (progress.playerTitle && progress.playerNumber) ? (progress.playerTitle + " №" + progress.playerNumber) : null;
   }
+
+  /* Код игрока. Титул и номер живут в localStorage, а он исчезает вместе с
+     «очистить данные сайта» — и человек возвращается в рейтинг новым игроком.
+     Код кодирует ту же пару «титул + номер», поэтому по записанному коду игрок
+     забирает свой номер обратно на любом устройстве, без пароля и регистрации. */
+  var CODE_A = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // без I и O — их путают с 1 и 0
+  function toBase(n, len) {
+    var s = "";
+    n = Math.max(0, Math.floor(n));
+    while (n > 0) { s = CODE_A.charAt(n % 34) + s; n = Math.floor(n / 34); }
+    while (s.length < len) s = "0" + s;
+    return s;
+  }
+  function fromBase(s) {
+    var n = 0;
+    for (var i = 0; i < s.length; i++) {
+      var d = CODE_A.indexOf(s.charAt(i));
+      if (d < 0) return -1;
+      n = n * 34 + d;
+    }
+    return n;
+  }
+  function checkChar(body) {
+    var sum = 0;
+    for (var i = 0; i < body.length; i++) sum += CODE_A.indexOf(body.charAt(i)) * (i + 1);
+    return CODE_A.charAt(sum % 34);
+  }
+  function playerCode(title, number) {
+    var idx = PERSONAS.indexOf(title);
+    if (idx < 0 || !number) return null;
+    var body = toBase(idx, 2) + toBase(number, 3);
+    var code = body + checkChar(body);
+    return code.slice(0, 3) + "-" + code.slice(3);
+  }
+  function myCode() { return currentDisplayName() ? playerCode(progress.playerTitle, progress.playerNumber) : null; }
+  function readPlayerCode(raw) {
+    var s = String(raw || "").toUpperCase().replace(/I/g, "1").replace(/O/g, "0").replace(/[^0-9A-Z]/g, "");
+    if (s.length < 6) return null;
+    var body = s.slice(0, s.length - 1);
+    if (checkChar(body) !== s.charAt(s.length - 1)) return null;
+    var idx = fromBase(body.slice(0, 2)), num = fromBase(body.slice(2));
+    if (idx < 0 || idx >= PERSONAS.length || num <= 0) return null;
+    return { title: PERSONAS[idx], number: num };
+  }
+  function restorePlayer(raw) {
+    var p = readPlayerCode(raw);
+    if (!p) return false;
+    progress.playerTitle = p.title; progress.playerNumber = p.number; saveProgress();
+    return true;
+  }
   function pickPersona(title, cb) {
     if (progress.playerNumber) { progress.playerTitle = title; saveProgress(); cb && cb(true); return; }
     if (!sb) { cb && cb(false, "Рейтинг ещё не подключён"); return; }
@@ -223,9 +281,13 @@
     sb.from("leaderboard").select("*").gte("created_at", weekAgo).order("points", { ascending: false }).limit(100)
       .then(function (res) {
         if (res.error) { cb([], res.error.message); return; }
+        // Строки отсортированы по очкам, поэтому первая встреченная строка игрока —
+        // его лучший результат за неделю. Ключ — номер игрока: титул можно сменить
+        // в настройках, номер остаётся, и один человек занимает одну строку.
         var seen = {}, out = [];
         (res.data || []).forEach(function (row) {
-          var key = String(row.name).toLowerCase();
+          var m = /№\s*(\d+)/.exec(String(row.name || ""));
+          var key = m ? "n" + m[1] : "s" + String(row.name || "").toLowerCase().trim();
           if (!seen[key]) { seen[key] = true; out.push(row); }
         });
         cb(out, null);
@@ -277,6 +339,8 @@
     progress: progress, saveProgress: saveProgress, entry: entry, isStudied: isStudied,
     byIso: byIso, regionCountries: regionCountries, regionName: regionName, studiedCount: studiedCount,
     unlocked: unlocked, REGION_ORDER: REGION_ORDER, SIZE_TOL: SIZE_TOL, PERSONAS: PERSONAS,
+    premiumEnabled: PREMIUM_ENABLED, hintsLeft: hintsLeft, spendHint: spendHint,
+    myCode: myCode, readPlayerCode: readPlayerCode, restorePlayer: restorePlayer,
     saveSession: saveSession, loadSession: loadSession, clearSession: clearSession,
     project: project, insideCountry: insideCountry, mapSvg: mapSvg, locator: locator,
     currentDisplayName: currentDisplayName, pickPersona: pickPersona,

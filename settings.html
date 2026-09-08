@@ -20,7 +20,42 @@
 <script>
 CA.ready(function () {
   var el = CA.el, k = CA.kicker, p = CA.progress, app = document.getElementById("app");
-  var msg = null;
+  var msg = null, codeMsg = null, codeInput = "";
+
+  // Код игрока — единственный способ вернуть свой номер после очистки данных
+  // браузера или на другом устройстве: логинов на сайте нет.
+  function codeBlock() {
+    var box = el("div", { style: "margin-top:12px" });
+    var mine = CA.myCode();
+    if (mine) {
+      box.appendChild(el("div", { class: "code" }, [mine]));
+      box.appendChild(el("p", { style: "margin:12px 0 0;font-size:16px;color:var(--n800);max-width:60ch" }, [
+        "Запишите этот код в дневник или тетрадь. Если браузер очистит данные сайта или вы сядете за другой компьютер — введите код ниже, и ваш номер вернётся вместе со всеми результатами в рейтинге."
+      ]));
+    } else {
+      box.appendChild(el("p", { style: "margin:0;font-size:16px;color:var(--n800);max-width:60ch" }, [
+        "Код появится, как только вы выберете титул. По нему номер возвращается после очистки браузера — без пароля и регистрации."
+      ]));
+    }
+    var input = el("input", { class: "input", id: "code", type: "text", placeholder: "Например, 0B-01FQ", autocomplete: "off",
+      style: "margin-top:10px;text-transform:uppercase",
+      oninput: function (e) { codeInput = e.target.value; },
+      onkeydown: function (e) { if (e.key === "Enter") applyCode(); } });
+    box.appendChild(el("div", { class: "row", style: "align-items:flex-end;margin-top:20px;max-width:560px" }, [
+      el("div", { class: "field", style: "flex:1;min-width:200px" }, [el("label", { class: "kicker", for: "code" }, ["Ввести код игрока"]), input]),
+      el("button", { class: "btn", type: "button", onclick: applyCode }, ["Восстановить"])
+    ]));
+    if (codeMsg) box.appendChild(el("p", { class: codeMsg[0] ? "ok" : "bad", style: "margin:10px 0 0;font-size:16px" }, [codeMsg[1]]));
+    setTimeout(function () { var i = document.getElementById("code"); if (i && codeInput) i.value = codeInput; }, 0);
+    return box;
+  }
+  function applyCode() {
+    var parsed = CA.readPlayerCode(codeInput);
+    if (!parsed) { codeMsg = [false, "Такой код не подходит — проверьте, все ли знаки на месте."]; render(); return; }
+    CA.restorePlayer(codeInput);
+    codeInput = ""; codeMsg = [true, "Готово, вы снова " + CA.currentDisplayName() + "."];
+    render();
+  }
 
   function render() {
     app.innerHTML = "";
@@ -42,7 +77,7 @@ CA.ready(function () {
 
     CA.mount(el("div", { class: "screen", style: "max-width:760px" }, [
       el("h1", { class: "big", style: "font-size:clamp(30px,4vw,44px);margin-bottom:14px" }, ["Настройки"]),
-      el("p", { class: "lede", style: "margin:0 0 32px" }, ["Прогресс хранится только в этом браузере. Для рейтинга недели нужен титул — номер к нему присвоится сам."]),
+      el("p", { class: "lede", style: "margin:0 0 32px" }, ["Прогресс хранится только в этом браузере. Для рейтинга недели нужен титул — номер к нему присвоится сам, а код игрока вернёт его, если браузер очистят."]),
 
       k("Титул в рейтинге"),
       el("p", { style: "margin:8px 0 0;font-size:16px;color:var(--n800)" }, me
@@ -51,13 +86,15 @@ CA.ready(function () {
       msg ? el("p", { class: "bad", style: "margin:8px 0 0;font-size:16px" }, [msg]) : null,
       titles,
 
+      el("div", { style: "margin-top:44px" }, [k("Код игрока")]),
+      codeBlock(),
+
       el("div", { style: "margin-top:44px" }, [k("Данные")]),
       el("div", { class: "list", style: "margin-top:12px" }, [
         el("div", { class: "li" }, [el("span", {}, ["Изучено стран"]), el("span", {}, [String(CA.studiedCount("world"))])]),
         el("div", { class: "li" }, [el("span", {}, ["Рекорд сессии"]), el("span", {}, [String(p.highScore || 0)])]),
         el("div", { class: "li" }, [el("span", {}, ["Раундов сыграно"]), el("span", {}, [String(p.totalRounds || 0)])]),
-        el("div", { class: "li" }, [el("span", {}, ["Подсказки"]), el("span", {}, [String(p.hints || 0)])]),
-        el("div", { class: "li" }, [el("span", {}, ["Полная версия"]), el("span", {}, [p.premium ? "открыта" : "не открыта"])])
+        CA.premiumEnabled ? el("div", { class: "li" }, [el("span", {}, ["Подсказки"]), el("span", {}, [String(p.hints || 0)])]) : null
       ]),
       el("div", { style: "margin-top:26px" }, [
         el("button", { class: "btn", type: "button", onclick: function () {

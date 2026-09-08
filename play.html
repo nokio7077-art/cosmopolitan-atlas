@@ -162,11 +162,11 @@ CA.ready(function () {
         el("button", { class: "btn primary", type: "button", onclick: submitCap }, ["Ответить"])
       ]));
       if (r.hint) box.appendChild(el("p", { class: "verdict", style: "margin:16px 0 0" }, ["Начинается на «" + r.hint + "…»"]));
-      else if ((CA.progress.hints || 0) > 0) box.appendChild(el("p", { style: "margin:18px 0 0;font-size:16px;color:var(--n700)" }, [
-        "Осталось подсказок: " + CA.progress.hints + " · ",
-        el("a", { href: "#", onclick: function (e) { e.preventDefault(); CA.progress.hints--; CA.saveProgress(); r.hint = r.c.c.slice(0, 2); render(); } }, ["показать первые буквы"])
+      else if (CA.hintsLeft() > 0) box.appendChild(el("p", { style: "margin:18px 0 0;font-size:16px;color:var(--n700)" }, [
+        CA.premiumEnabled ? "Осталось подсказок: " + CA.progress.hints + " · " : "Не помните? ",
+        el("a", { href: "#", onclick: function (e) { e.preventDefault(); CA.spendHint(); r.hint = r.c.c.slice(0, 2); render(); } }, ["показать первые буквы"])
       ]));
-      else box.appendChild(el("p", { style: "margin:18px 0 0;font-size:16px;color:var(--n700)" }, ["Подсказки закончились — их можно получить в ", el("a", { href: "premium.html" }, ["полной версии"]), "."]));
+      else box.appendChild(el("p", { style: "margin:18px 0 0;font-size:16px;color:var(--n700)" }, ["Подсказки на сегодня закончились."]));
       setTimeout(function () { var i = document.getElementById("cap"); if (i) { i.value = st.capital; i.focus(); } }, 0);
     } else {
       box.appendChild(el("div", {}, [
@@ -339,6 +339,10 @@ CA.ready(function () {
     ]));
     else {
       sendWrap.appendChild(el("p", { style: "margin:0;font-size:16px;color:var(--n800)" }, [st.submitMsg || "Результат уходит в рейтинг недели сам."]));
+      sendWrap.appendChild(el("p", { style: "margin:10px 0 0;font-size:16px;color:var(--n800)" }, [
+        "Ваш код игрока — ", el("b", { style: "font-weight:600;letter-spacing:.08em" }, [CA.myCode()]),
+        ". Запишите его: по нему вы вернёте свой номер, если браузер очистит данные сайта."
+      ]));
       if (!st.submitted && !st.sending) sendWrap.appendChild(el("div", { style: "margin-top:12px" }, [
         el("button", { class: "btn", type: "button", onclick: sendResult }, ["Отправить ещё раз"])
       ]));
