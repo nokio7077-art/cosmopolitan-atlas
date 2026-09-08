@@ -140,18 +140,54 @@
   function mapSvg(opts) {
     opts = opts || {};
     if (!PATHS) buildPaths();
-    var svg = '<svg viewBox="0 0 1000 500" preserveAspectRatio="none" role="img" aria-label="Карта мира"><rect width="1000" height="500" fill="#f3f2f2"/>';
+    var v = opts.view || { x: 0, y: 0, w: 1000, h: 500 };
+    // Толщина линий и радиусы задаются в единицах полной карты: при увеличении
+    // окна просмотра их надо ужать, иначе границы превращаются в кляксы.
+    var s = v.w / 1000;
+    var svg = '<svg viewBox="' + v.x.toFixed(1) + " " + v.y.toFixed(1) + " " + v.w.toFixed(1) + " " + v.h.toFixed(1) +
+      '" preserveAspectRatio="none" role="img" aria-label="' + (opts.label || "Карта мира") + '">' +
+      '<rect x="' + v.x.toFixed(1) + '" y="' + v.y.toFixed(1) + '" width="' + v.w.toFixed(1) + '" height="' + v.h.toFixed(1) + '" fill="#f3f2f2"/>';
     for (var iso in PATHS) {
       var fill = opts.highlight === iso ? (opts.highlightFill || "#99e0ff") : "#eae7e7";
-      svg += '<path d="' + PATHS[iso] + '" fill="' + fill + '" stroke="#7d7979" stroke-width="0.5"/>';
+      svg += '<path d="' + PATHS[iso] + '" fill="' + fill + '" stroke="#7d7979" stroke-width="' + (0.5 * s).toFixed(3) + '"/>';
     }
+    (opts.rects || []).forEach(function (r) {
+      svg += '<rect x="' + r.x.toFixed(1) + '" y="' + r.y.toFixed(1) + '" width="' + r.w.toFixed(1) + '" height="' + r.h.toFixed(1) +
+        '" fill="none" stroke="' + (r.stroke || "#d6006c") + '" stroke-width="' + (1.8 * s).toFixed(3) + '"/>';
+    });
     (opts.pins || []).forEach(function (p) {
-      svg += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (p.r || 6) + '" fill="' + p.fill + '"/>';
+      svg += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + ((p.r || 6) * s).toFixed(2) + '" fill="' + p.fill + '"' +
+        (p.opacity ? ' opacity="' + p.opacity + '"' : "") +
+        (p.stroke ? ' stroke="' + p.stroke + '" stroke-width="' + (1.6 * s).toFixed(2) + '"' : "") + "/>";
     });
     svg += "</svg>";
     var box = el("div", { class: "mapbox" + (opts.onClick ? " play" : ""), html: svg });
     if (opts.onClick) box.addEventListener("click", opts.onClick);
     return box;
+  }
+  // Карта положения страны: мир целиком с рамкой и та же область крупным планом.
+  // У 27 самых маленьких государств контура в GEO_DATA нет вовсе, поэтому точку
+  // ставим всегда — иначе Монако или Науру на карте просто не существует.
+  function locator(c) {
+    var t = project(c.lng, c.lat);
+    var w = 40 / 360 * 1000, h = w / 2;
+    var view = {
+      x: Math.max(0, Math.min(1000 - w, t.x - w / 2)),
+      y: Math.max(0, Math.min(500 - h, t.y - h / 2)),
+      w: w, h: h
+    };
+    var halo = { x: t.x, y: t.y, r: 18, fill: "#d6006c", opacity: 0.2 };
+    var dot = { x: t.x, y: t.y, r: 7, fill: "#d6006c", stroke: "#fff" };
+    return el("div", { class: "locator" }, [
+      el("div", {}, [
+        kicker("Страна на карте мира"),
+        mapSvg({ highlight: c.f, highlightFill: "#d6006c", pins: [{ x: t.x, y: t.y, r: 4, fill: "#d6006c" }], rects: [view], label: c.n + " на карте мира" })
+      ]),
+      el("div", {}, [
+        kicker("Крупным планом"),
+        mapSvg({ highlight: c.f, highlightFill: "#d6006c", pins: [halo, dot], view: view, label: c.n + " крупным планом" })
+      ])
+    ]);
   }
 
   /* --- рейтинг --- */
@@ -242,7 +278,7 @@
     byIso: byIso, regionCountries: regionCountries, regionName: regionName, studiedCount: studiedCount,
     unlocked: unlocked, REGION_ORDER: REGION_ORDER, SIZE_TOL: SIZE_TOL, PERSONAS: PERSONAS,
     saveSession: saveSession, loadSession: loadSession, clearSession: clearSession,
-    project: project, insideCountry: insideCountry, mapSvg: mapSvg,
+    project: project, insideCountry: insideCountry, mapSvg: mapSvg, locator: locator,
     currentDisplayName: currentDisplayName, pickPersona: pickPersona,
     submitToLeaderboard: submitToLeaderboard, fetchLeaderboard: fetchLeaderboard, hasServer: !!sb,
     mount: function (node) { document.getElementById("app").appendChild(el("div", { class: "wrap" }, [node])); },
