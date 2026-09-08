@@ -73,7 +73,8 @@ CA.ready(function () {
         el("a", { href: "#", onclick: function (e) { e.preventDefault(); st.view = "regions"; render(); } }, ["← Регионы"]),
         k(CA.regionName(st.region) + " · карточка " + (st.i + 1) + " из " + st.queue.length)
       ]),
-      el("div", { class: "grid two", style: "align-items:center" }, [front, back])
+      el("div", { class: "grid two", style: "align-items:center" }, [front, back]),
+      CA.locator(c)
     ]);
   }
 
