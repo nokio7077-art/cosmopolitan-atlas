@@ -221,8 +221,8 @@
   function countryPaths(opts, scale, fixedStroke) {
     var out = "";
     for (var iso in PATHS) {
-      var fill = opts.highlight === iso ? (opts.highlightFill || "#99e0ff") : "#eae7e7";
-      out += '<path d="' + PATHS[iso] + '" fill="' + fill + '" stroke="#7d7979" stroke-width="' +
+      var fill = opts.highlight === iso ? (opts.highlightFill || "#ffd66b") : "#d5e8c4";
+      out += '<path d="' + PATHS[iso] + '" fill="' + fill + '" stroke="#9cba86" stroke-width="' +
         (fixedStroke ? "0.5" : (0.5 * scale).toFixed(3)) + '"' +
         (fixedStroke ? ' vector-effect="non-scaling-stroke"' : "") + "/>";
     }
@@ -234,7 +234,7 @@
     var out = "";
     (opts.rects || []).forEach(function (r) {
       out += '<rect x="' + r.x.toFixed(1) + '" y="' + r.y.toFixed(1) + '" width="' + r.w.toFixed(1) + '" height="' + r.h.toFixed(1) +
-        '" fill="none" stroke="' + (r.stroke || "#d6006c") + '" stroke-width="' + (1.8 * scale).toFixed(3) + '"/>';
+        '" fill="none" stroke="' + (r.stroke || "#e8523f") + '" stroke-width="' + (1.8 * scale).toFixed(3) + '"/>';
     });
     (opts.pins || []).forEach(function (p) {
       out += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + ((p.r || 6) * scale).toFixed(2) + '" fill="' + p.fill + '"' +
@@ -250,7 +250,7 @@
     var s = v.w / 1000;
     var svg = '<svg viewBox="' + v.x.toFixed(1) + " " + v.y.toFixed(1) + " " + v.w.toFixed(1) + " " + v.h.toFixed(1) +
       '" preserveAspectRatio="none" role="img" aria-label="' + (opts.label || "Карта мира") + '">' +
-      '<rect x="' + v.x.toFixed(1) + '" y="' + v.y.toFixed(1) + '" width="' + v.w.toFixed(1) + '" height="' + v.h.toFixed(1) + '" fill="#f3f2f2"/>' +
+      '<rect x="' + v.x.toFixed(1) + '" y="' + v.y.toFixed(1) + '" width="' + v.w.toFixed(1) + '" height="' + v.h.toFixed(1) + '" fill="#d9ecff"/>' +
       countryPaths(opts, s) + markMarkup(opts, s) + "</svg>";
     var box = el("div", { class: "mapbox" + (opts.onClick ? " play" : ""), html: svg });
     if (opts.onClick) box.addEventListener("click", opts.onClick);
@@ -269,7 +269,7 @@
     var view = { x: 0, y: 0, w: 1000, h: 500 }, pins = [], picking = true;
     var box = el("div", { class: "mapbox play zoom" , html:
       '<svg viewBox="0 0 1000 500" preserveAspectRatio="none" role="img" aria-label="' + (opts.label || "Карта мира") + '">' +
-      '<rect x="0" y="0" width="1000" height="500" fill="#f3f2f2"/>' +
+      '<rect x="0" y="0" width="1000" height="500" fill="#d9ecff"/>' +
       countryPaths({}, 1, true) +
       '<path class="hl" d="" fill="none"/>' +
       '<g class="marks"></g></svg>' });
@@ -394,7 +394,7 @@
     wrap.setMarks = function (list) { pins = list || []; apply(); };
     wrap.setHighlight = function (iso, fill) {
       hl.setAttribute("d", PATHS[iso] || "");
-      hl.setAttribute("fill", fill || "#a8ddba");
+      hl.setAttribute("fill", fill || "#9fdcb6");
     };
     // После ответа карта остаётся живой: приблизить и рассмотреть можно, ткнуть — нет.
     wrap.stopPicking = function () { picking = false; box.classList.remove("play"); };
@@ -448,16 +448,16 @@
   function locator(c) {
     var t = project(c.lng, c.lat);
     var view = closeView(c);
-    var halo = { x: t.x, y: t.y, r: 18, fill: "#d6006c", opacity: 0.2 };
-    var dot = { x: t.x, y: t.y, r: 7, fill: "#d6006c", stroke: "#fff" };
+    var halo = { x: t.x, y: t.y, r: 18, fill: "#e8523f", opacity: 0.22 };
+    var dot = { x: t.x, y: t.y, r: 7, fill: "#e8523f", stroke: "#fff" };
     return el("div", { class: "locator" }, [
       el("div", {}, [
         kicker("Страна на карте мира"),
-        mapSvg({ highlight: c.f, highlightFill: "#d6006c", pins: [{ x: t.x, y: t.y, r: 4, fill: "#d6006c" }], rects: [view], label: c.n + " на карте мира" })
+        mapSvg({ highlight: c.f, highlightFill: "#ffd66b", pins: [{ x: t.x, y: t.y, r: 4, fill: "#e8523f" }], rects: [view], label: c.n + " на карте мира" })
       ]),
       el("div", {}, [
         kicker("Крупным планом"),
-        mapSvg({ highlight: c.f, highlightFill: "#d6006c", pins: [halo, dot], view: view, label: c.n + " крупным планом" })
+        mapSvg({ highlight: c.f, highlightFill: "#ffd66b", pins: [halo, dot], view: view, label: c.n + " крупным планом" })
       ])
     ]);
   }
@@ -618,16 +618,42 @@
 
   /* --- шапка, подвал, куки --- */
   var NAV = [
-    ["index.html", "Дом"], ["play.html", "Играть"], ["flags.html", "Флаги"],
-    ["learn.html", "Карточки"], ["board.html", "Рейтинг"], ["stats.html", "Статистика"], ["settings.html", "Настройки"]
+    ["index.html", "Главная"], ["play.html", "Играть"], ["flags.html", "Флаги"],
+    ["learn.html", "Карточки"], ["board.html", "Рейтинг"], ["stats.html", "Статистика"]
   ];
+  var ICON_USER = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></svg>';
+  var ICON_STAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="#1b1200"><path d="M12 2.6l2.7 5.9 6.3.7-4.7 4.3 1.3 6.3L12 16.6 6.4 19.8l1.3-6.3L3 9.2l6.3-.7z"/></svg>';
+  // Значок в шапке — та же карта мира, обрезанная в круг.
+  function brandMark() {
+    var box = el("span", { class: "mark" });
+    try {
+      var m = mapSvg({ view: { x: 420, y: 90, w: 240, h: 240 }, label: "" });
+      var svg = m.querySelector("svg");
+      svg.querySelector("rect").setAttribute("fill", "#4aa8f0");
+      Array.prototype.forEach.call(svg.querySelectorAll("path"), function (p) {
+        p.setAttribute("fill", "#79c56a"); p.setAttribute("stroke", "#5fb355");
+      });
+      box.appendChild(svg);
+    } catch (e) {}
+    return box;
+  }
   function chrome() {
     var here = (location.pathname.split("/").pop() || "index.html");
     var links = el("nav", { class: "navlinks" }, NAV.map(function (item) {
       return el("a", { href: item[0], class: here === item[0] ? "on" : "" }, [item[1]]);
     }));
     var header = el("header", { class: "nav" }, [
-      el("div", { class: "wrap" }, [el("a", { class: "nav-brand", href: "index.html" }, ["Cosmopolitan"]), links])
+      el("div", { class: "wrap" }, [
+        el("a", { class: "nav-brand", href: "index.html" }, [brandMark(), "Cosmopolitan Atlas"]),
+        links,
+        el("div", { class: "nav-right" }, [
+          el("a", { class: "nav-ava", href: "settings.html", "aria-label": "Настройки игрока", html: ICON_USER }),
+          el("a", { class: "nav-score", href: "stats.html", title: "Лучший результат за сессию" }, [
+            el("span", { class: "st", html: ICON_STAR }),
+            el("span", {}, [String(progress.highScore || 0)])
+          ])
+        ])
+      ])
     ]);
     document.body.insertBefore(header, document.body.firstChild);
 
