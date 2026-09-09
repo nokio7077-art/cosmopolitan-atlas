@@ -3,6 +3,7 @@
 :root{
   --bg:#f3f2f2; --surface:#eae9e9; --text:#201e1d;
   --accent:#0088b0; --accent-ink:#006786; --spot:#d6006c; --spot-ink:#aa0b56;
+  --good:#1f8a4c; --good-ink:#15703c; --wrong:#d92b2b; --wrong-ink:#b31d1d;
   --n200:#eae7e7; --n300:#d7d3d3; --n400:#bab6b6; --n600:#7d7979; --n700:#605d5d; --n800:#444141;
   --divider:rgba(32,30,29,.16);
   --serif:'Source Serif 4',Georgia,serif;
@@ -94,29 +95,57 @@ td{padding:11px 10px 11px 0;border-bottom:1px solid var(--divider);}
 .code{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(26px,4vw,38px);font-weight:600;letter-spacing:.12em;background:#fff;border:1px solid var(--text);padding:10px 18px;}
 .options{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;max-width:640px;margin-top:10px;}
 .options .btn{text-align:left;}
+/* После ответа варианты остаются на экране: верный — в зелёной рамке, ошибочный
+   выбор — в красной. Рамку рисуем тенью, чтобы кнопки не прыгали. */
+.options .btn.done{pointer-events:none;}
+.options .btn.right{border-color:var(--good);box-shadow:0 0 0 3px var(--good);background:rgba(31,138,76,.10);color:var(--good-ink);font-weight:600;}
+.options .btn.wrong{border-color:var(--wrong);box-shadow:0 0 0 3px var(--wrong);background:rgba(217,43,43,.08);color:var(--wrong-ink);}
 
 .flagopts{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;max-width:620px;}
-.flagopts .fl{cursor:pointer;outline:2px solid transparent;outline-offset:3px;padding:0;border:none;background:none;}
+.flagopts .fl{cursor:pointer;outline:3px solid transparent;outline-offset:3px;padding:0;border:none;background:none;}
 .flagopts .fl img{display:block;width:100%;aspect-ratio:3/2;object-fit:contain;background:var(--n200);border:1px solid var(--divider);}
 .flagopts .fl:hover{outline-color:var(--n400);}
-.flagopts .fl.right{outline-color:var(--accent);}
-.flagopts .fl.wrong{outline-color:var(--spot);}
+.flagopts .fl.right{outline:6px solid var(--good);}
+.flagopts .fl.wrong{outline:6px solid var(--wrong);}
 
-.locator{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;margin-top:34px;}
+.locator{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;}
 .locator .kicker{margin-bottom:8px;}
 .locator .mapbox{margin-left:0;margin-right:0;width:100%;max-width:100%;}
 
-.flags{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:10px;max-height:460px;overflow-y:auto;padding:2px;}
+.flags{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:12px;max-height:460px;overflow-y:auto;padding:6px;}
 .flags .fl{cursor:pointer;outline:2px solid transparent;outline-offset:2px;padding:0;border:none;background:none;}
 .flags .fl img{display:block;width:100%;aspect-ratio:4/3;object-fit:contain;background:var(--n200);}
 .flags .fl:hover{outline-color:var(--n400);}
-.flags .fl.right{outline-color:var(--accent);}
-.flags .fl.wrong{outline-color:var(--spot);}
+.flags .fl.right{outline:5px solid var(--good);}
+.flags .fl.wrong{outline:5px solid var(--wrong);}
+
+/* Карточка страны: лицо и оборот лежат в одной ячейке грида, поэтому высота
+   карточки равна большей из сторон и при перевороте ничего не дёргается. */
+.flip{perspective:1600px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.flip-inner{display:grid;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.7,.25,1);}
+.flip.on .flip-inner{transform:rotateY(180deg);}
+.flip .face{grid-area:1/1;pointer-events:none;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#fff;border:1px solid var(--divider);box-shadow:var(--sh-sm);padding:clamp(18px,2.6vw,28px);}
+.flip .face.back{transform:rotateY(180deg);}
+.flip .face.front img{display:block;width:100%;aspect-ratio:3/2;object-fit:contain;background:var(--n200);border:1px solid var(--divider);}
+.flip .face table{margin-top:4px;}
+.flip .face table tr:last-child td{border-bottom:none;}
+.flip:hover .cc-title{color:var(--accent-ink);}
+.flip:focus-visible{outline:2px solid var(--accent);outline-offset:4px;}
+.cc-title{font-weight:600;font-size:clamp(26px,3.4vw,40px);line-height:1.1;letter-spacing:-.02em;margin-top:18px;}
+.cc-capital{font-weight:600;font-size:clamp(28px,4.2vw,46px);line-height:1.1;letter-spacing:-.02em;margin:4px 0 18px;}
+.cc-hint{font-size:14px;line-height:22px;color:var(--n700);margin-top:14px;}
 
 .fact{border-top:1px solid var(--divider);margin-top:20px;padding-top:16px;}
 .fact p{font-size:16px;line-height:27px;margin:8px 0 0;}
 .verdict{font-style:italic;font-size:21px;line-height:31px;}
-.ok{color:var(--accent-ink);} .bad{color:var(--spot-ink);}
+.ok{color:var(--good-ink);} .bad{color:var(--wrong-ink);}
+
+/* Ответ после хода: слово «Верно»/«Неверно» крупно, объяснение — под ним. */
+.answer{margin:22px 0 24px;}
+.answer-word{font-weight:600;font-size:clamp(34px,6vw,60px);line-height:1.05;letter-spacing:-.02em;}
+.answer.ok .answer-word{color:var(--good-ink);}
+.answer.bad .answer-word{color:var(--wrong-ink);}
+.answer-note{font-size:clamp(17px,1.6vw,21px);line-height:1.5;margin:8px 0 0;max-width:56ch;color:var(--n800);}
 .prose p,.prose li{font-size:17px;line-height:29px;max-width:68ch;}
 .prose h2{font-size:24px;line-height:30px;margin:36px 0 8px;}
 .prose ul{padding-left:22px;}

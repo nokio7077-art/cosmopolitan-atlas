@@ -48,7 +48,6 @@
   function kicker(text, cls) { return el("div", { class: "kicker" + (cls ? " " + cls : "") }, [text]); }
   function bar(pct) { return el("div", { class: "bar" }, [el("i", { style: "width:" + pct + "%" })]); }
   function flagUrl(f) { return "flags/" + f + ".svg"; }
-  function stars(n) { return new Array(n + 1).join("★") + new Array(4 - n).join("☆"); }
 
   function shuffle(a) {
     a = a.slice();
@@ -76,6 +75,24 @@
     return a.length > 0 && lev(a, b) <= tol;
   }
 
+  /* --- население --- */
+  function population(iso) { return (window.POPULATION && POPULATION[iso]) || null; }
+  function groupDigits(n) {
+    var s = String(n), out = "";
+    for (var i = s.length; i > 0; i -= 3) out = s.slice(Math.max(0, i - 3), i) + (out ? "\u00A0" + out : "");
+    return out;
+  }
+  // «146 млн» запоминается лучше, чем «146 000 000», поэтому от миллиона и выше
+  // округляем, а маленькие страны показываем полным числом — там важна каждая тысяча.
+  function popText(iso) {
+    var n = population(iso);
+    if (!n) return null;
+    if (n < 1000000) return groupDigits(n);
+    if (n >= 1000000000) return String(Math.round(n / 10000000) / 100).replace(".", ",") + "\u00A0млрд";
+    var m = n / 1000000;
+    return (m >= 100 ? String(Math.round(m)) : String(Math.round(m * 10) / 10).replace(".", ",")) + "\u00A0млн";
+  }
+
   /* --- прогресс --- */
   function loadProgress() {
     try { var raw = localStorage.getItem(STORE_KEY); if (raw) return JSON.parse(raw); } catch (e) {}
@@ -85,7 +102,9 @@
   function saveProgress() { try { localStorage.setItem(STORE_KEY, JSON.stringify(progress)); } catch (e) {} }
 
   function entry(iso) { return progress.perCountry[iso]; }
-  function isStudied(iso) { var e = entry(iso); return !!e && e.attempts > 0 && (e.sumScore / e.attempts) >= 42; }
+  // За раунд дают 30 очков: столица, флаг и карта по десятке. Изученной считаем
+  // страну, если в среднем берутся хотя бы два шага из трёх.
+  function isStudied(iso) { var e = entry(iso); return !!e && e.attempts > 0 && (e.sumScore / e.attempts) >= 20; }
   function byIso(iso) { for (var i = 0; i < COUNTRIES.length; i++) if (COUNTRIES[i].f === iso) return COUNTRIES[i]; return null; }
   function regionCountries(key) {
     return key === "world" ? COUNTRIES.slice() : COUNTRIES.filter(function (c) { return c.r === key; });
@@ -126,6 +145,58 @@
     }
     return false;
   }
+  var GEOM = {};
+  // Контур страны в координатах карты: точки для проверки «рядом ли клик» и рамки
+  // отдельных кусков суши — по ним же считается масштаб крупного плана.
+  function geom(iso) {
+    if (GEOM.hasOwnProperty(iso)) return GEOM[iso];
+    var g = window.GEO_DATA[iso];
+    if (!g) return (GEOM[iso] = null);
+    var blocks = g.t === 0 ? [g.c] : g.c, pts = [], boxes = [];
+    for (var b = 0; b < blocks.length; b++) {
+      var rings = blocks[b], bx = null;
+      for (var r = 0; r < rings.length; r++) {
+        var ring = rings[r];
+        for (var k = 0; k < ring.length; k++) {
+          var p = project(ring[k][0], ring[k][1]);
+          pts.push(p);
+          if (!bx) bx = { x0: p.x, x1: p.x, y0: p.y, y1: p.y };
+          else {
+            if (p.x < bx.x0) bx.x0 = p.x;
+            if (p.x > bx.x1) bx.x1 = p.x;
+            if (p.y < bx.y0) bx.y0 = p.y;
+            if (p.y > bx.y1) bx.y1 = p.y;
+          }
+        }
+      }
+      if (bx) boxes.push(bx);
+    }
+    GEOM[iso] = pts.length ? { pts: pts, boxes: boxes } : null;
+    return GEOM[iso];
+  }
+  // Попал ли клик внутрь какой-нибудь другой страны. Нужно, чтобы поблажка «почти
+  // попал в границу» не превращала соседнее государство в правильный ответ:
+  // клик в Испании — это Испания, а не «почти Португалия».
+  function insideAnyOther(iso, lng, lat) {
+    for (var other in window.GEO_DATA) {
+      if (other === iso) continue;
+      if (insideCountry(other, lng, lat)) return true;
+    }
+    return false;
+  }
+  // Клик у самого берега или на границе — тоже попадание: контуры в данных
+  // упрощены, да и палец на телефоне не бывает ювелирно точным.
+  function nearCountry(iso, x, y, tol) {
+    var g = geom(iso);
+    if (!g) return false;
+    var t2 = tol * tol;
+    for (var i = 0; i < g.pts.length; i++) {
+      var dx = g.pts[i].x - x, dy = g.pts[i].y - y;
+      if (dx * dx + dy * dy <= t2) return true;
+    }
+    return false;
+  }
+
   var PATHS = null;
   function buildPaths() {
     PATHS = {};
@@ -176,14 +247,49 @@
   // Карта положения страны: мир целиком с рамкой и та же область крупным планом.
   // У 27 самых маленьких государств контура в GEO_DATA нет вовсе, поэтому точку
   // ставим всегда — иначе Монако или Науру на карте просто не существует.
-  function locator(c) {
-    var t = project(c.lng, c.lat);
-    var w = 40 / 360 * 1000, h = w / 2;
-    var view = {
-      x: Math.max(0, Math.min(1000 - w, t.x - w / 2)),
-      y: Math.max(0, Math.min(500 - h, t.y - h / 2)),
+  var MIN_VIEW = 153;      // ≈55° по долготе: страна показана вместе с соседями
+  var MIN_VIEW_TINY = 111; // ≈40°: города-государства без контура, им нужен план покрупнее
+  function frame(cx, cy, w) {
+    var h = w / 2;
+    return {
+      x: Math.max(0, Math.min(1000 - w, cx - w / 2)),
+      y: Math.max(0, Math.min(500 - h, cy - h / 2)),
       w: w, h: h
     };
+  }
+  // Окно крупного плана подгоняем под размер страны: у России оно почти во всю
+  // карту, у Люксембурга — минимальное. Мелкие острова и заморские куски в рамку
+  // не берём, иначе Аляска растянула бы США на пол-карты, а сама страна стала бы
+  // неразличимой точкой.
+  function closeView(c) {
+    var t = project(c.lng, c.lat), g = geom(c.f);
+    if (!g) return frame(t.x, t.y, MIN_VIEW_TINY);
+    var big = 0, i, a, b;
+    for (i = 0; i < g.boxes.length; i++) {
+      b = g.boxes[i];
+      a = (b.x1 - b.x0) * (b.y1 - b.y0);
+      if (a > big) big = a;
+    }
+    var box = { x0: t.x, x1: t.x, y0: t.y, y1: t.y };
+    for (i = 0; i < g.boxes.length; i++) {
+      b = g.boxes[i];
+      a = (b.x1 - b.x0) * (b.y1 - b.y0);
+      if (a < big * 0.45) continue;
+      if (b.x0 < box.x0) box.x0 = b.x0;
+      if (b.x1 > box.x1) box.x1 = b.x1;
+      if (b.y0 < box.y0) box.y0 = b.y0;
+      if (b.y1 > box.y1) box.y1 = b.y1;
+    }
+    var w = Math.max(box.x1 - box.x0, 2 * (box.y1 - box.y0)) * 1.25;
+    // Страна по обе стороны 180-го меридиана (Фиджи, Кирибати) даёт рамку во всю
+    // карту — для неё берём обычное окно вокруг столицы.
+    if (w > 700) return frame(t.x, t.y, MIN_VIEW);
+    w = Math.max(MIN_VIEW, Math.min(w, 1000));
+    return frame((box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2, w);
+  }
+  function locator(c) {
+    var t = project(c.lng, c.lat);
+    var view = closeView(c);
     var halo = { x: t.x, y: t.y, r: 18, fill: "#d6006c", opacity: 0.2 };
     var dot = { x: t.x, y: t.y, r: 7, fill: "#d6006c", stroke: "#fff" };
     return el("div", { class: "locator" }, [
@@ -195,6 +301,64 @@
         kicker("Крупным планом"),
         mapSvg({ highlight: c.f, highlightFill: "#d6006c", pins: [halo, dot], view: view, label: c.n + " крупным планом" })
       ])
+    ]);
+  }
+
+  /* --- карточка страны --- */
+  // Одна карточка на весь сайт: и в режиме «Карточки», и на странице страны.
+  // Лицо — флаг и название, оборот — столица, население и факт о флаге; отдельной
+  // страницы с тем же самым больше нет.
+  function countryCard(c) {
+    var facts = window.FLAG_FACTS || {};
+    var rows = [
+      ["Регион", regionName(c.r)],
+      ["Население", popText(c.f) || "нет данных"],
+      ["Код страны", c.f.toUpperCase()]
+    ];
+    var e = entry(c.f);
+    if (e && e.attempts) rows.push(["Ваши попытки", e.attempts + " · ошибок " + (e.mistakes.capital + e.mistakes.flag + e.mistakes.map)]);
+
+    var front = el("div", { class: "face front" }, [
+      el("img", { src: flagUrl(c.f), alt: "Флаг " + c.n, decoding: "async" }),
+      el("div", { class: "cc-title" }, [c.n]),
+      el("div", { class: "cc-hint" }, ["Нажмите на карточку, чтобы перевернуть"])
+    ]);
+    var back = el("div", { class: "face back" }, [
+      kicker("Столица", "ac"),
+      el("div", { class: "cc-capital" }, [c.c]),
+      el("table", {}, [el("tbody", {}, rows.map(function (r) {
+        return el("tr", {}, [el("td", {}, [r[0]]), el("td", { style: "text-align:right" }, [r[1]])]);
+      }))]),
+      facts[c.f] ? el("div", { class: "fact" }, [kicker("О флаге", "ac"), el("p", {}, [facts[c.f]])]) : null,
+      el("div", { class: "cc-hint" }, ["Нажмите, чтобы вернуться к флагу"])
+    ]);
+    var card = el("div", {
+      class: "flip", role: "button", tabindex: "0",
+      "aria-label": "Карточка страны " + c.n + ". Перевернуть, чтобы увидеть столицу и население."
+    }, [el("div", { class: "flip-inner" }, [front, back])]);
+
+    var flipped = false;
+    function apply() {
+      if (flipped) card.classList.add("on"); else card.classList.remove("on");
+      card.setAttribute("aria-pressed", flipped ? "true" : "false");
+      front.setAttribute("aria-hidden", flipped ? "true" : "false");
+      back.setAttribute("aria-hidden", flipped ? "false" : "true");
+    }
+    function toggle() { flipped = !flipped; apply(); }
+    card.addEventListener("click", toggle);
+    card.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " " || ev.key === "Spacebar") { ev.preventDefault(); toggle(); }
+    });
+    apply();
+    return card;
+  }
+
+  // Ответ игроку: крупное «Верно» или «Неверно» и строка о том, что это значит.
+  function verdict(ok, note) {
+    var kids = Object.prototype.toString.call(note) === "[object Array]" ? note : [note];
+    return el("div", { class: "answer " + (ok ? "ok" : "bad") }, [
+      el("div", { class: "answer-word" }, [ok ? "Верно" : "Неверно"]),
+      el("p", { class: "answer-note" }, kids)
     ]);
   }
 
@@ -334,7 +498,7 @@
   }
 
   window.CA = {
-    el: el, qs: qs, kicker: kicker, bar: bar, flagUrl: flagUrl, stars: stars,
+    el: el, qs: qs, kicker: kicker, bar: bar, flagUrl: flagUrl,
     shuffle: shuffle, norm: norm, fuzzy: fuzzy,
     progress: progress, saveProgress: saveProgress, entry: entry, isStudied: isStudied,
     byIso: byIso, regionCountries: regionCountries, regionName: regionName, studiedCount: studiedCount,
@@ -342,7 +506,9 @@
     premiumEnabled: PREMIUM_ENABLED, hintsLeft: hintsLeft, spendHint: spendHint,
     myCode: myCode, readPlayerCode: readPlayerCode, restorePlayer: restorePlayer,
     saveSession: saveSession, loadSession: loadSession, clearSession: clearSession,
-    project: project, insideCountry: insideCountry, mapSvg: mapSvg, locator: locator,
+    project: project, insideCountry: insideCountry, nearCountry: nearCountry, insideAnyOther: insideAnyOther,
+    mapSvg: mapSvg, locator: locator, closeView: closeView,
+    population: population, popText: popText, countryCard: countryCard, verdict: verdict,
     currentDisplayName: currentDisplayName, pickPersona: pickPersona,
     submitToLeaderboard: submitToLeaderboard, fetchLeaderboard: fetchLeaderboard, hasServer: !!sb,
     mount: function (node) { document.getElementById("app").appendChild(el("div", { class: "wrap" }, [node])); },

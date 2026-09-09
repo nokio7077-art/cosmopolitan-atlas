@@ -55,7 +55,7 @@ CA.ready(function () {
   function newRound(c) {
     return { c: c, step: "capital", capOk: false, capDone: false, hint: null, capOptions: null,
       flagDone: false, flagOk: false, pick: null, flagOptions: null,
-      mapDone: false, st: 0, click: null, target: null, points: 0, mult: 1 };
+      mapDone: false, mapOk: false, click: null, target: null, points: 0, mult: 1 };
   }
   function capOptionsFor(c) {
     var seen = {}; seen[CA.norm(c.c)] = true;
@@ -160,12 +160,23 @@ CA.ready(function () {
     if (!r.capDone) box.appendChild(el("p", { class: "ask" }, [
       st.difficulty === "easy" ? "Выберите столицу этой страны" : "Напишите столицу этой страны"
     ]));
-    if (!r.capDone && st.difficulty === "easy") {
+    if (st.difficulty === "easy") {
       if (!r.capOptions) r.capOptions = capOptionsFor(r.c);
+      // После ответа варианты не убираем: видно и верный (зелёная рамка), и то,
+      // что нажали вы (красная) — так столица и запоминается.
       box.appendChild(el("div", { class: "options" }, r.capOptions.map(function (opt) {
+        var cls = "btn";
+        if (r.capDone) {
+          cls += " done";
+          if (opt === r.c.c) cls += " right";
+          else if (opt === st.capital) cls += " wrong";
+        }
         return el("button", {
-          class: "btn", type: "button",
-          onclick: function () { st.capital = opt; r.capDone = true; r.capOk = opt === r.c.c; render(); }
+          class: cls, type: "button",
+          onclick: function () {
+            if (r.capDone) return;
+            st.capital = opt; r.capDone = true; r.capOk = opt === r.c.c; render();
+          }
         }, [opt]);
       })));
     } else if (!r.capDone) {
@@ -183,13 +194,15 @@ CA.ready(function () {
       ]));
       else box.appendChild(el("p", { style: "margin:18px 0 0;font-size:16px;color:var(--n700)" }, ["Подсказки на сегодня закончились."]));
       setTimeout(function () { var i = document.getElementById("cap"); if (i) { i.value = st.capital; i.focus(); } }, 0);
-    } else {
-      box.appendChild(el("div", {}, [
-        k(r.capOk ? "Верно" : "Неверно"),
-        el("div", { style: "font-weight:600;font-size:clamp(30px,5vw,40px);line-height:1.1;margin-top:10px" }, [r.c.c]),
-        el("p", { class: "verdict " + (r.capOk ? "ok" : "bad"), style: "margin:10px 0 22px" }, [r.capOk ? "Точно так. Плюс десять очков." : "Вы написали «" + (st.capital || "—") + "». Запомним."]),
-        el("button", { class: "btn primary", type: "button", onclick: function () { r.step = "flag"; render(); } }, ["Дальше · флаг"])
-      ]));
+    }
+    if (r.capDone) {
+      var said = (st.capital || "").trim();
+      box.appendChild(CA.verdict(r.capOk, r.capOk
+        ? ["Столица — ", el("b", { style: "font-weight:600" }, [r.c.c]), ". Плюс 10 очков."]
+        : [said ? "Ваш ответ — «" + said + "»." : "Ответа не было.",
+           " Правильный ответ — ", el("b", { style: "font-weight:600" }, [r.c.c]),
+           ". Страну добавили в список «Стоит повторить» — он ждёт в конце сессии."]));
+      box.appendChild(el("button", { class: "btn primary", type: "button", onclick: function () { r.step = "flag"; render(); } }, ["Дальше · флаг"]));
     }
     return box;
   }
@@ -219,54 +232,61 @@ CA.ready(function () {
       var list = COUNTRIES.slice().sort(function (a, b) { return a.n.localeCompare(b.n, "ru"); });
       box.appendChild(el("div", { class: "flags" }, list.map(function (c) { return flagButton(c, "fl"); })));
     }
-    if (r.flagDone) box.appendChild(el("div", { class: "row", style: "margin-top:20px;align-items:center" }, [
-      el("span", { class: "verdict " + (r.flagOk ? "ok" : "bad") }, [r.flagOk ? "Верно — плюс десять." : "Верный флаг обведён голубым."]),
-      el("button", { class: "btn primary", type: "button", onclick: function () { r.step = "map"; render(); } }, ["Дальше · карта"])
-    ]));
+    if (r.flagDone) {
+      box.appendChild(CA.verdict(r.flagOk, r.flagOk
+        ? ["Это её флаг. Плюс 10 очков."]
+        : ["Верный флаг обведён зелёным, ваш выбор — красным. Посмотрите на него пару секунд: в следующий раз узнаете."]));
+      box.appendChild(el("button", { class: "btn primary", type: "button", onclick: function () { r.step = "map"; render(); } }, ["Дальше · карта"]));
+    }
     return box;
   }
 
   function stepMap(r) {
     var pins = [];
     if (r.mapDone) {
-      pins.push({ x: r.click.x, y: r.click.y, r: 8, fill: "#d6006c" });
-      if (r.st < 3) pins.push({ x: r.target.x, y: r.target.y, r: 7, fill: "#0088b0" });
+      pins.push({ x: r.click.x, y: r.click.y, r: 8, fill: r.mapOk ? "#1f8a4c" : "#d92b2b", stroke: "#fff" });
+      if (!r.mapOk) pins.push({ x: r.target.x, y: r.target.y, r: 7, fill: "#1f8a4c", stroke: "#fff" });
     }
     var map = CA.mapSvg({
-      highlight: r.mapDone ? r.c.f : null, highlightFill: "#99e0ff", pins: pins,
+      highlight: r.mapDone ? r.c.f : null, highlightFill: "#a8ddba", pins: pins,
       onClick: r.mapDone ? null : function (ev) {
         var b = ev.currentTarget.getBoundingClientRect();
         var x = (ev.clientX - b.left) / b.width * 1000, y = (ev.clientY - b.top) / b.height * 500;
         var lng = x / 1000 * 360 - 180, lat = 90 - y / 500 * 180;
         var t = CA.project(r.c.lng, r.c.lat);
         var dist = Math.sqrt(Math.pow(x - t.x, 2) + Math.pow(y - t.y, 2));
-        var tol2 = 1000 * (CA.SIZE_TOL[r.c.s] || 0.038), tol3 = tol2 * 0.45;
         // На маленьком экране карта физически меньше — палец на телефоне не может быть
         // ювелирно точным, поэтому не даём зоне допуска становиться уже примерно 28px
         var minTol = (28 / b.width) * 1000;
-        tol2 = Math.max(tol2, minTol); tol3 = Math.max(tol3, minTol * 0.5);
+        // Спрашиваем «где страна», а не «где её столица»: клик в Сибири — это Россия,
+        // даже если до Москвы оттуда полкарты. Поэтому смотрим на попадание в контур,
+        // и лишь у крошечных государств без контура — на расстояние до столицы.
         var ins = CA.insideCountry(r.c.f, lng, lat);
-        r.st = ins === null ? (dist <= tol3 ? 3 : (dist <= tol2 ? 2 : 0))
-          : (ins ? (dist <= tol3 ? 3 : 2) : (dist <= tol2 * 0.5 ? 2 : 0));
+        r.mapOk = ins === null
+          ? dist <= Math.max(1000 * (CA.SIZE_TOL[r.c.s] || 0.038), minTol)
+          : (ins || (CA.nearCountry(r.c.f, x, y, Math.max(12, minTol)) && !CA.insideAnyOther(r.c.f, lng, lat)));
         r.mapDone = true; r.click = { x: x, y: y }; r.target = t; render();
       }
     });
-    var line = r.mapDone
-      ? (r.st > 0 ? "Попадание · " + CA.stars(r.st) + " · +" + (r.st === 3 ? 40 : 20) + " очков" : "Мимо — голубая точка показывает верное место")
-      : "Нажмите на карту там, где находится эта страна";
-    var foot = el("div", { style: "display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:18px" }, [el("span", {}, [line])]);
-    if (r.mapDone) foot.appendChild(el("button", { class: "btn primary", type: "button", onclick: finish }, ["Итог раунда"]));
-    return el("div", { style: "padding-top:36px" }, [
+    var box = el("div", { style: "padding-top:36px" }, [
       k("Шаг 3 из 3 · где это на карте", "ac"),
-      el("h1", { class: "big", style: "font-size:clamp(28px,4vw,44px);margin:14px 0 18px" }, [r.c.n]),
-      map, foot
+      el("h1", { class: "big", style: "font-size:clamp(28px,4vw,44px);margin:14px 0 18px" }, [r.c.n])
     ]);
+    if (!r.mapDone) box.appendChild(el("p", { class: "ask" }, ["Нажмите на карту там, где находится эта страна"]));
+    box.appendChild(map);
+    if (r.mapDone) {
+      box.appendChild(CA.verdict(r.mapOk, r.mapOk
+        ? ["Отметка внутри страны. Плюс 10 очков."]
+        : ["Зелёная точка — верное место, красная — ваша отметка. Страну добавили в список «Стоит повторить» — он ждёт в конце сессии."]));
+      box.appendChild(el("button", { class: "btn primary", type: "button", onclick: finish }, ["Итог раунда"]));
+    }
+    return box;
   }
 
   function finish() {
     var r = st.round;
-    var raw = (r.capOk ? 10 : 0) + (r.flagOk ? 10 : 0) + (r.st === 3 ? 40 : (r.st === 2 ? 20 : 0));
-    var clean = r.capOk && r.flagOk && r.st >= 2;
+    var raw = (r.capOk ? 10 : 0) + (r.flagOk ? 10 : 0) + (r.mapOk ? 10 : 0);
+    var clean = r.capOk && r.flagOk && r.mapOk;
     st.combo = clean ? st.combo + 1 : 0;
     r.mult = st.combo >= 3 ? 1.5 : 1;
     r.points = Math.round(raw * r.mult);
@@ -275,7 +295,7 @@ CA.ready(function () {
     e.attempts++; e.sumScore += raw;
     if (!r.capOk) e.mistakes.capital++;
     if (!r.flagOk) e.mistakes.flag++;
-    if (r.st < 2) e.mistakes.map++;
+    if (!r.mapOk) e.mistakes.map++;
     CA.progress.perCountry[r.c.f] = e;
     CA.progress.totalRounds = (CA.progress.totalRounds || 0) + 1;
     CA.saveProgress();
@@ -283,7 +303,7 @@ CA.ready(function () {
       var what = [];
       if (!r.capOk) what.push("столица");
       if (!r.flagOk) what.push("флаг");
-      if (r.st < 2) what.push("карта");
+      if (!r.mapOk) what.push("карта");
       st.mistakes[r.c.n] = { iso: r.c.f, what: what.join(", ") };
     }
     r.step = "summary"; render();
@@ -293,7 +313,7 @@ CA.ready(function () {
     var rows = [
       ["Столица — " + r.c.c, r.capOk ? "верно · +10" : "неверно", r.capOk],
       ["Флаг", r.flagOk ? "верно · +10" : "неверно", r.flagOk],
-      ["Позиция на карте", CA.stars(r.st) + (r.st >= 2 ? " · +" + (r.st === 3 ? 40 : 20) : ""), r.st >= 2],
+      ["Место на карте", r.mapOk ? "верно · +10" : "мимо", r.mapOk],
       ["Множитель комбо", "×" + r.mult, true]
     ];
     var last = st.i + 1 >= st.queue.length;
@@ -307,10 +327,10 @@ CA.ready(function () {
       el("div", {}, [
         k("За раунд"), el("div", { class: "num" }, ["+" + r.points]),
         el("p", { style: "margin:14px 0 26px;color:var(--n800);font-size:16px" }, [
-          r.capOk && r.flagOk && r.st >= 2 ? r.c.n + " теперь идёт в зачёт как изученная страна." : "Страна вернётся в подборку для повторения."
+          r.capOk && r.flagOk && r.mapOk ? r.c.n + " теперь идёт в зачёт как изученная страна." : "Страна вернётся в подборку для повторения."
         ]),
         el("button", { class: "btn primary block", type: "button", onclick: next }, [last ? "Итоги сессии" : "Дальше"]),
-        el("div", { style: "margin-top:14px" }, [el("a", { class: "btn ghost block", href: "country.html?iso=" + r.c.f, style: "text-align:center" }, ["Открыть страницу страны"])])
+        el("div", { style: "margin-top:14px" }, [el("a", { class: "btn ghost block", href: "country.html?iso=" + r.c.f, style: "text-align:center" }, ["Открыть карточку страны"])])
       ])
     ])]);
   }
