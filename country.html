@@ -16,12 +16,12 @@
 <meta property="og:site_name" content="Cosmopolitan — атлас памяти">
 <meta property="og:locale" content="ru_RU">
 <meta property="og:title" content="Страна мира: столица, флаг и место на карте | Cosmopolitan">
-<meta property="og:description" content="Карточка страны: столица, флаг с фактом о нём, координаты и карта, где находится государство — включая самые маленькие страны мира.">
+<meta property="og:description" content="Карточка страны: столица, флаг с фактом о нём, население и карта, где находится государство — включая самые маленькие страны мира.">
 <meta property="og:url" content="https://cosmopolitan-atlas.online/country.html">
 <meta property="og:image" content="https://cosmopolitan-atlas.online/favicon-512.png">
 <meta name="twitter:card" content="summary">
 <title>Страна мира: столица, флаг и место на карте | Cosmopolitan</title>
-<meta name="description" content="Карточка страны: столица, флаг с фактом о нём, координаты и карта, где находится государство — включая самые маленькие страны мира.">
+<meta name="description" content="Карточка страны: столица, флаг с фактом о нём, население и карта, где находится государство — включая самые маленькие страны мира.">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -54,7 +54,7 @@ CA.ready(function () {
   var pageUrl = "https://cosmopolitan-atlas.online/country.html?iso=" + c.f;
   document.title = c.n + " — столица " + c.c + ", флаг и место на карте";
   setMeta("name", "description",
-    c.n + ": столица — " + c.c + ", флаг с фактом о нём, координаты и карта, где находится страна. " +
+    c.n + ": столица — " + c.c + ", флаг с фактом о нём, население и карта, где находится страна. " +
     "Регион: " + CA.regionName(c.r) + ".");
   setMeta("property", "og:title", document.title);
   setMeta("property", "og:url", pageUrl);
@@ -62,39 +62,26 @@ CA.ready(function () {
   var link = document.querySelector('link[rel="canonical"]');
   if (link) link.setAttribute("href", pageUrl);
 
-  var e = CA.entry(c.f);
-  var rows = [
-    ["Столица", c.c],
-    ["Регион", CA.regionName(c.r)],
-    ["Код", c.f.toUpperCase()],
-    ["Координаты столицы", c.lat.toFixed(2) + ", " + c.lng.toFixed(2)],
-    ["Ваши попытки", e ? e.attempts + " · ошибок " + (e.mistakes.capital + e.mistakes.flag + e.mistakes.map) : "ещё не играли"]
-  ];
-
   var idx = COUNTRIES.filter(function (x) { return x.r === c.r; }).sort(function (a, b) { return a.n.localeCompare(b.n, "ru"); });
   var pos = idx.map(function (x) { return x.f; }).indexOf(c.f);
   var prev = idx[(pos - 1 + idx.length) % idx.length], nxt = idx[(pos + 1) % idx.length];
 
+  // Та же карточка, что и в режиме «Карточки»: отдельной страницы с тем же
+  // содержимым больше нет, поэтому и здесь карточку можно перевернуть.
   CA.mount(el("div", { class: "screen" }, [
     el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;gap:16px;flex-wrap:wrap" }, [
       el("a", { href: "index.html" }, ["← Индекс стран"]),
       k(CA.regionName(c.r) + (CA.isStudied(c.f) ? " · изучено" : ""))
     ]),
-    el("h1", { class: "big", style: "font-size:clamp(38px,7vw,76px);margin-bottom:26px" }, [c.n]),
+    el("h1", { class: "big", style: "font-size:clamp(34px,6vw,68px);margin-bottom:26px" }, [c.n]),
     el("div", { class: "grid two", style: "align-items:start" }, [
+      CA.countryCard(c),
       el("div", {}, [
-        el("img", { src: CA.flagUrl(c.f), alt: "Флаг " + c.n, decoding: "async", style: "display:block;width:100%;aspect-ratio:3/2;object-fit:contain;background:var(--n200);border:1px solid var(--divider)" }),
-        el("table", { style: "margin-top:18px" }, [el("tbody", {}, rows.map(function (r) {
-          return el("tr", {}, [el("td", {}, [r[0]]), el("td", { style: "text-align:right" }, [r[1]])]);
-        }))]),
-        el("div", { style: "margin-top:18px" }, [
+        CA.locator(c),
+        el("div", { style: "margin-top:26px" }, [
           el("a", { class: "btn primary block", href: "play.html?iso=" + c.f, style: "text-align:center" }, ["Сыграть эту страну"])
-        ])
-      ]),
-      el("div", {}, [
-        CA.mapSvg({ highlight: c.f, highlightFill: "#0088b0" }),
-        FLAG_FACTS[c.f] ? el("div", { class: "fact" }, [k("О флаге", "ac"), el("p", {}, [FLAG_FACTS[c.f]])]) : null,
-        el("div", { class: "row", style: "margin-top:26px" }, [
+        ]),
+        el("div", { class: "row", style: "margin-top:14px" }, [
           el("a", { class: "btn ghost", href: "country.html?iso=" + prev.f }, ["← " + prev.n]),
           el("a", { class: "btn ghost", href: "country.html?iso=" + nxt.f }, [nxt.n + " →"])
         ])

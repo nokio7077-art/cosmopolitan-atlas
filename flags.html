@@ -102,7 +102,7 @@ CA.ready(function () {
       if (FLAG_FACTS[c.f]) right.appendChild(el("div", { class: "fact", style: "margin-bottom:22px" }, [k("О флаге", "ac"), el("p", {}, [FLAG_FACTS[c.f]])]));
       right.appendChild(el("div", { class: "row" }, [
         el("button", { class: "btn primary", type: "button", onclick: next }, [st.i + 1 >= st.queue.length ? "Итоги" : "Следующий флаг"]),
-        el("a", { class: "btn ghost", href: "country.html?iso=" + c.f }, ["Страница страны"])
+        el("a", { class: "btn ghost", href: "country.html?iso=" + c.f }, ["Карточка страны"])
       ]));
     }
     return el("div", { class: "screen", style: "padding-top:22px" }, [

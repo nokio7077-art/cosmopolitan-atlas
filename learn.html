@@ -16,12 +16,12 @@
 <meta property="og:site_name" content="Cosmopolitan — атлас памяти">
 <meta property="og:locale" content="ru_RU">
 <meta property="og:title" content="Карточки по географии: столицы, флаги и страны на карте | Cosmopolitan">
-<meta property="og:description" content="Учебные карточки без таймера: флаг, страна, её столица, координаты и карта, где находится государство. Удобно готовиться к уроку географии и олимпиаде.">
+<meta property="og:description" content="Учебные карточки без таймера: флаг, страна, её столица, население и карта, где находится государство. Удобно готовиться к уроку географии и олимпиаде.">
 <meta property="og:url" content="https://cosmopolitan-atlas.online/learn.html">
 <meta property="og:image" content="https://cosmopolitan-atlas.online/favicon-512.png">
 <meta name="twitter:card" content="summary">
 <title>Карточки по географии: столицы, флаги и страны на карте | Cosmopolitan</title>
-<meta name="description" content="Учебные карточки без таймера: флаг, страна, её столица, координаты и карта, где находится государство. Удобно готовиться к уроку географии и олимпиаде.">
+<meta name="description" content="Учебные карточки без таймера: флаг, страна, её столица, население и карта, где находится государство. Удобно готовиться к уроку географии и олимпиаде.">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -31,7 +31,7 @@
 <script>
 CA.ready(function () {
   var el = CA.el, k = CA.kicker, app = document.getElementById("app");
-  var st = { view: "regions", region: null, queue: [], i: 0, flipped: false };
+  var st = { view: "regions", region: null, queue: [], i: 0 };
 
   function render() {
     app.innerHTML = "";
@@ -45,13 +45,13 @@ CA.ready(function () {
         el("a", { href: "index.html" }, ["← На главную"]), k("Режим обучения")
       ]),
       el("h1", { class: "big", style: "font-size:clamp(32px,4.5vw,48px);margin-bottom:14px" }, ["Карточки без таймера"]),
-      el("p", { class: "lede", style: "margin:0 0 28px" }, ["На лице карточки флаг и страна, на обороте — столица, координаты и факт о флаге."]),
+      el("p", { class: "lede", style: "margin:0 0 28px" }, ["На лице карточки флаг и страна, на обороте — столица, население, регион и факт о флаге. Всё о стране — в одной карточке."]),
       el("div", { class: "tile-list" }, ["world"].concat(CA.REGION_ORDER).map(function (key) {
         var list = CA.regionCountries(key), locked = !CA.unlocked(key);
         return el("a", { class: "tile", href: locked ? "premium.html" : "#", onclick: function (e) {
           if (locked) return;
           e.preventDefault();
-          st.region = key; st.queue = CA.shuffle(list); st.i = 0; st.flipped = false; st.view = "card"; render();
+          st.region = key; st.queue = CA.shuffle(list); st.i = 0; st.view = "card"; render();
         } }, [
           el("div", { style: "display:flex;align-items:baseline;gap:12px" }, [
             el("h3", {}, [CA.regionName(key)]), locked ? el("span", { class: "tag" }, ["Премиум"]) : null
@@ -64,33 +64,24 @@ CA.ready(function () {
 
   function viewCard() {
     var c = st.queue[st.i];
-    var front = el("div", { style: "cursor:pointer", onclick: function () { st.flipped = !st.flipped; render(); } }, [
-      el("img", { src: CA.flagUrl(c.f), alt: "Флаг " + c.n, decoding: "async", style: "display:block;width:100%;aspect-ratio:3/2;object-fit:contain;background:var(--n200);border:1px solid var(--divider)" }),
-      el("div", { style: "font-weight:600;font-size:clamp(26px,4vw,44px);line-height:1.1;margin-top:18px" }, [c.n]),
-      el("div", { style: "font-size:15px;color:var(--n700);margin-top:6px" }, ["Нажмите на карточку, чтобы перевернуть"])
+    // Карточка одна на весь сайт: то же, что на странице страны, только здесь её
+    // можно листать. Переворот живёт внутри самой карточки, перерисовка не нужна.
+    var card = CA.countryCard(c);
+    var nav = el("div", { class: "row", style: "margin-top:26px" }, [
+      el("button", { class: "btn ghost", type: "button", onclick: function () { st.i = Math.max(0, st.i - 1); render(); } }, ["← Назад"]),
+      el("button", { class: "btn primary", type: "button", onclick: function () { st.i = Math.min(st.queue.length - 1, st.i + 1); render(); } }, ["Дальше →"]),
+      el("a", { class: "btn", href: "play.html?iso=" + c.f }, ["Сыграть эту страну"])
     ]);
-    var back = el("div", {}, []);
-    if (st.flipped) {
-      back.appendChild(k("Оборот карточки"));
-      back.appendChild(el("div", { style: "font-weight:600;font-size:clamp(30px,5vw,56px);line-height:1.08;margin-top:10px" }, [c.c]));
-      back.appendChild(el("p", { class: "verdict", style: "margin:10px 0 0" }, [CA.regionName(c.r) + " · " + c.lat.toFixed(2) + ", " + c.lng.toFixed(2)]));
-      if (FLAG_FACTS[c.f]) back.appendChild(el("div", { class: "fact" }, [k("О флаге", "ac"), el("p", {}, [FLAG_FACTS[c.f]])]));
-    } else {
-      back.appendChild(el("p", { class: "lede", style: "margin:0;color:var(--n700)" }, ["На обороте — столица, координаты и факт о флаге этой страны."]));
-    }
-    back.appendChild(el("div", { class: "row", style: "margin-top:26px" }, [
-      el("button", { class: "btn ghost", type: "button", onclick: function () { st.i = Math.max(0, st.i - 1); st.flipped = false; render(); } }, ["← Назад"]),
-      el("button", { class: "btn primary", type: "button", onclick: function () { st.i = Math.min(st.queue.length - 1, st.i + 1); st.flipped = false; render(); } }, ["Дальше →"]),
-      el("a", { class: "btn", href: "country.html?iso=" + c.f }, ["Страница страны"])
-    ]));
 
     return el("div", { class: "screen" }, [
       el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px;gap:16px;flex-wrap:wrap" }, [
         el("a", { href: "#", onclick: function (e) { e.preventDefault(); st.view = "regions"; render(); } }, ["← Регионы"]),
         k(CA.regionName(st.region) + " · карточка " + (st.i + 1) + " из " + st.queue.length)
       ]),
-      el("div", { class: "grid two", style: "align-items:center" }, [front, back]),
-      CA.locator(c)
+      el("div", { class: "grid two", style: "align-items:start" }, [
+        card,
+        el("div", {}, [CA.locator(c), nav])
+      ])
     ]);
   }
 
