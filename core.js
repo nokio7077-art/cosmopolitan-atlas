@@ -216,34 +216,192 @@
       PATHS[iso] = d;
     }
   }
+  // Разметка стран и отметок вынесена отдельно: статичной карте она нужна один раз,
+  // а карте с приближением — заново на каждом шаге зума.
+  function countryPaths(opts, scale, fixedStroke) {
+    var out = "";
+    for (var iso in PATHS) {
+      var fill = opts.highlight === iso ? (opts.highlightFill || "#99e0ff") : "#eae7e7";
+      out += '<path d="' + PATHS[iso] + '" fill="' + fill + '" stroke="#7d7979" stroke-width="' +
+        (fixedStroke ? "0.5" : (0.5 * scale).toFixed(3)) + '"' +
+        (fixedStroke ? ' vector-effect="non-scaling-stroke"' : "") + "/>";
+    }
+    return out;
+  }
+  // Толщина линий и радиусы задаются в единицах полной карты: при увеличении
+  // окна просмотра их надо ужать, иначе границы превращаются в кляксы.
+  function markMarkup(opts, scale) {
+    var out = "";
+    (opts.rects || []).forEach(function (r) {
+      out += '<rect x="' + r.x.toFixed(1) + '" y="' + r.y.toFixed(1) + '" width="' + r.w.toFixed(1) + '" height="' + r.h.toFixed(1) +
+        '" fill="none" stroke="' + (r.stroke || "#d6006c") + '" stroke-width="' + (1.8 * scale).toFixed(3) + '"/>';
+    });
+    (opts.pins || []).forEach(function (p) {
+      out += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + ((p.r || 6) * scale).toFixed(2) + '" fill="' + p.fill + '"' +
+        (p.opacity ? ' opacity="' + p.opacity + '"' : "") +
+        (p.stroke ? ' stroke="' + p.stroke + '" stroke-width="' + (1.6 * scale).toFixed(2) + '"' : "") + "/>";
+    });
+    return out;
+  }
   function mapSvg(opts) {
     opts = opts || {};
     if (!PATHS) buildPaths();
     var v = opts.view || { x: 0, y: 0, w: 1000, h: 500 };
-    // Толщина линий и радиусы задаются в единицах полной карты: при увеличении
-    // окна просмотра их надо ужать, иначе границы превращаются в кляксы.
     var s = v.w / 1000;
     var svg = '<svg viewBox="' + v.x.toFixed(1) + " " + v.y.toFixed(1) + " " + v.w.toFixed(1) + " " + v.h.toFixed(1) +
       '" preserveAspectRatio="none" role="img" aria-label="' + (opts.label || "Карта мира") + '">' +
-      '<rect x="' + v.x.toFixed(1) + '" y="' + v.y.toFixed(1) + '" width="' + v.w.toFixed(1) + '" height="' + v.h.toFixed(1) + '" fill="#f3f2f2"/>';
-    for (var iso in PATHS) {
-      var fill = opts.highlight === iso ? (opts.highlightFill || "#99e0ff") : "#eae7e7";
-      svg += '<path d="' + PATHS[iso] + '" fill="' + fill + '" stroke="#7d7979" stroke-width="' + (0.5 * s).toFixed(3) + '"/>';
-    }
-    (opts.rects || []).forEach(function (r) {
-      svg += '<rect x="' + r.x.toFixed(1) + '" y="' + r.y.toFixed(1) + '" width="' + r.w.toFixed(1) + '" height="' + r.h.toFixed(1) +
-        '" fill="none" stroke="' + (r.stroke || "#d6006c") + '" stroke-width="' + (1.8 * s).toFixed(3) + '"/>';
-    });
-    (opts.pins || []).forEach(function (p) {
-      svg += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + ((p.r || 6) * s).toFixed(2) + '" fill="' + p.fill + '"' +
-        (p.opacity ? ' opacity="' + p.opacity + '"' : "") +
-        (p.stroke ? ' stroke="' + p.stroke + '" stroke-width="' + (1.6 * s).toFixed(2) + '"' : "") + "/>";
-    });
-    svg += "</svg>";
+      '<rect x="' + v.x.toFixed(1) + '" y="' + v.y.toFixed(1) + '" width="' + v.w.toFixed(1) + '" height="' + v.h.toFixed(1) + '" fill="#f3f2f2"/>' +
+      countryPaths(opts, s) + markMarkup(opts, s) + "</svg>";
     var box = el("div", { class: "mapbox" + (opts.onClick ? " play" : ""), html: svg });
     if (opts.onClick) box.addEventListener("click", opts.onClick);
     return box;
   }
+
+  /* --- карта с приближением --- */
+  // Ткнуть в Люксембург или Бруней на карте во весь мир невозможно ни мышью, ни
+  // пальцем, поэтому карту для игры можно приближать: кнопками, колесом, двойным
+  // касанием — и таскать, когда приблизили. Само окно просмотра — тот же viewBox,
+  // что и у статичной карты, так что все координаты считаются одинаково.
+  var MAX_ZOOM = 16;
+  function zoomMap(opts) {
+    opts = opts || {};
+    if (!PATHS) buildPaths();
+    var view = { x: 0, y: 0, w: 1000, h: 500 }, pins = [], picking = true;
+    var box = el("div", { class: "mapbox play zoom" , html:
+      '<svg viewBox="0 0 1000 500" preserveAspectRatio="none" role="img" aria-label="' + (opts.label || "Карта мира") + '">' +
+      '<rect x="0" y="0" width="1000" height="500" fill="#f3f2f2"/>' +
+      countryPaths({}, 1, true) +
+      '<path class="hl" d="" fill="none"/>' +
+      '<g class="marks"></g></svg>' });
+    var svg = box.querySelector("svg"), hl = box.querySelector(".hl"), marks = box.querySelector(".marks");
+
+    // Кнопки живут под картой, а не поверх неё: наложенные, они закрывали бы
+    // северо-восток карты — по Японии и Камчатке было бы просто не попасть.
+    var plus = el("button", { class: "mapbtn", type: "button", "aria-label": "Приблизить карту" }, ["+"]);
+    var minus = el("button", { class: "mapbtn", type: "button", "aria-label": "Отдалить карту" }, ["−"]);
+    var reset = el("button", { class: "mapbtn wide", type: "button" }, ["Вся карта"]);
+    plus.addEventListener("click", function () { zoomAt(1.6, 0.5, 0.5); });
+    minus.addEventListener("click", function () { zoomAt(1 / 1.6, 0.5, 0.5); });
+    reset.addEventListener("click", function () { view.x = 0; view.y = 0; view.w = 1000; apply(); });
+    var scale = el("span", { class: "mapscale" }, ["1×"]);
+    var wrap = el("div", { class: "mapzoom" }, [box, el("div", { class: "mapctrls" }, [plus, minus, reset, scale])]);
+
+    function apply() {
+      view.h = view.w / 2;
+      view.x = Math.max(0, Math.min(1000 - view.w, view.x));
+      view.y = Math.max(0, Math.min(500 - view.h, view.y));
+      svg.setAttribute("viewBox", view.x.toFixed(2) + " " + view.y.toFixed(2) + " " + view.w.toFixed(2) + " " + view.h.toFixed(2));
+      marks.innerHTML = markMarkup({ pins: pins }, view.w / 1000);
+      var zoomed = view.w < 999.5;
+      if (zoomed) box.classList.add("zoomed"); else box.classList.remove("zoomed");
+      plus.disabled = view.w <= 1000 / MAX_ZOOM + 0.01;
+      minus.disabled = !zoomed;
+      reset.disabled = !zoomed;
+      scale.textContent = (Math.round(1000 / view.w * 10) / 10) + "×";
+    }
+    // u и v — доля ширины и высоты окна: точка под курсором или между пальцами
+    // должна остаться на месте, иначе карта «убегает» при каждом приближении.
+    function zoomAt(factor, u, v) {
+      var fx = view.x + u * view.w, fy = view.y + v * view.h;
+      var w = Math.max(1000 / MAX_ZOOM, Math.min(1000, view.w / factor));
+      view.x = fx - u * w; view.y = fy - v * (w / 2); view.w = w;
+      apply();
+    }
+    function frac(cx, cy) {
+      var b = box.getBoundingClientRect();
+      return { u: (cx - b.left) / b.width, v: (cy - b.top) / b.height, b: b };
+    }
+    function dist(a, b) { return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2)); }
+
+    box.addEventListener("wheel", function (ev) {
+      // Пока карта не приближена, колесо оставляем странице: иначе курсор над
+      // картой запирает прокрутку и до кнопки ответа не добраться. Приблизить с
+      // самого начала можно двойным нажатием, кнопками или Ctrl с колесом.
+      if (view.w > 999.5 && !ev.ctrlKey && !ev.metaKey) return;
+      ev.preventDefault();
+      var f = frac(ev.clientX, ev.clientY);
+      zoomAt(ev.deltaY < 0 ? 1.25 : 1 / 1.25, f.u, f.v);
+    }, { passive: false });
+
+    var pointers = {}, drag = null, pinch = null, lastTap = { t: 0, u: 0, v: 0 };
+    box.addEventListener("pointerdown", function (ev) {
+      pointers[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+      var ids = Object.keys(pointers);
+      if (ids.length === 1) {
+        try { box.setPointerCapture(ev.pointerId); } catch (e) {}
+        drag = { id: ev.pointerId, moved: 0 };
+      } else if (ids.length === 2) {
+        drag = null;
+        pinch = { ids: ids, d: dist(pointers[ids[0]], pointers[ids[1]]) };
+      }
+    });
+    box.addEventListener("pointermove", function (ev) {
+      var prev = pointers[ev.pointerId];
+      if (!prev) return;
+      pointers[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+      if (pinch) {
+        var a = pointers[pinch.ids[0]], b = pointers[pinch.ids[1]];
+        if (!a || !b) return;
+        var d = dist(a, b);
+        if (pinch.d > 4 && d > 4) {
+          var f = frac((a.x + b.x) / 2, (a.y + b.y) / 2);
+          zoomAt(d / pinch.d, f.u, f.v);
+        }
+        pinch.d = d;
+        return;
+      }
+      if (!drag || drag.id !== ev.pointerId) return;
+      var dx = ev.clientX - prev.x, dy = ev.clientY - prev.y;
+      drag.moved += Math.abs(dx) + Math.abs(dy);
+      if (view.w < 999.5) {
+        var r = box.getBoundingClientRect();
+        view.x -= dx / r.width * view.w;
+        view.y -= dy / r.height * view.h;
+        apply();
+      }
+    });
+    function release(ev) {
+      var was = drag;
+      delete pointers[ev.pointerId];
+      if (Object.keys(pointers).length < 2) pinch = null;
+      if (!was || was.id !== ev.pointerId) return;
+      drag = null;
+      // Короткое касание без движения — это ответ, а не перетаскивание карты.
+      if (was.moved > 8) return;
+      var f = frac(ev.clientX, ev.clientY);
+      if (f.u < 0 || f.u > 1 || f.v < 0 || f.v > 1) return;
+      // Двойное касание (или двойной клик) приближает туда, куда ткнули: на телефоне
+      // это самый быстрый способ добраться до нужного угла карты.
+      var now = Date.now();
+      if (now - lastTap.t < 350 && Math.abs(f.u - lastTap.u) < 0.03 && Math.abs(f.v - lastTap.v) < 0.03) {
+        lastTap.t = 0;
+        zoomAt(2, f.u, f.v);
+        return;
+      }
+      lastTap = { t: now, u: f.u, v: f.v };
+      if (!picking) return;
+      var x = view.x + f.u * view.w, y = view.y + f.v * view.h;
+      if (opts.onPick) opts.onPick({
+        x: x, y: y, lng: x / 1000 * 360 - 180, lat: 90 - y / 500 * 180,
+        // сколько единиц карты приходится на экранный пиксель: чем ближе
+        // приближение, тем точнее можно ткнуть — и тем строже допуск
+        upp: view.w / f.b.width
+      });
+    }
+    box.addEventListener("pointerup", release);
+    box.addEventListener("pointercancel", release);
+
+    wrap.setMarks = function (list) { pins = list || []; apply(); };
+    wrap.setHighlight = function (iso, fill) {
+      hl.setAttribute("d", PATHS[iso] || "");
+      hl.setAttribute("fill", fill || "#a8ddba");
+    };
+    // После ответа карта остаётся живой: приблизить и рассмотреть можно, ткнуть — нет.
+    wrap.stopPicking = function () { picking = false; box.classList.remove("play"); };
+    apply();
+    return wrap;
+  }
+
   // Карта положения страны: мир целиком с рамкой и та же область крупным планом.
   // У 27 самых маленьких государств контура в GEO_DATA нет вовсе, поэтому точку
   // ставим всегда — иначе Монако или Науру на карте просто не существует.
@@ -507,7 +665,7 @@
     myCode: myCode, readPlayerCode: readPlayerCode, restorePlayer: restorePlayer,
     saveSession: saveSession, loadSession: loadSession, clearSession: clearSession,
     project: project, insideCountry: insideCountry, nearCountry: nearCountry, insideAnyOther: insideAnyOther,
-    mapSvg: mapSvg, locator: locator, closeView: closeView,
+    mapSvg: mapSvg, zoomMap: zoomMap, locator: locator, closeView: closeView,
     population: population, popText: popText, countryCard: countryCard, verdict: verdict,
     currentDisplayName: currentDisplayName, pickPersona: pickPersona,
     submitToLeaderboard: submitToLeaderboard, fetchLeaderboard: fetchLeaderboard, hasServer: !!sb,

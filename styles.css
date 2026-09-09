@@ -91,6 +91,21 @@ td{padding:11px 10px 11px 0;border-bottom:1px solid var(--divider);}
 .mapbox svg{display:block;width:100%;height:100%;}
 .mapbox.play{cursor:crosshair;}
 
+/* Карта с приближением. touch-action:pan-y на неприближённой карте оставляет
+   странице обычную вертикальную прокрутку пальцем; как только карту приблизили,
+   жесты забирает она сама — иначе панораму не потаскаешь. */
+.mapbox.zoom{position:relative;overflow:hidden;touch-action:pan-y;user-select:none;-webkit-user-select:none;}
+.mapbox.zoom.zoomed{touch-action:none;}
+.mapbox.zoom.zoomed:not(.play){cursor:grab;}
+.mapbox.zoom.zoomed:active{cursor:grabbing;}
+.mapctrls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;}
+.mapbtn{width:46px;height:46px;padding:0;font-family:var(--serif);font-size:24px;line-height:1;font-weight:600;
+  background:#fff;color:var(--text);border:1px solid var(--text);border-radius:2px;cursor:pointer;touch-action:manipulation;}
+.mapbtn:hover:not(:disabled){background:var(--text);color:var(--bg);}
+.mapbtn.wide{width:auto;height:46px;padding:0 16px;font-size:16px;font-weight:400;}
+.mapbtn:disabled{opacity:.35;cursor:default;}
+.mapscale{font-size:15px;color:var(--n700);margin-left:2px;}
+
 .ask{font-weight:600;font-size:clamp(22px,3vw,34px);line-height:1.25;color:var(--accent-ink);margin:0 0 24px;}
 .code{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(26px,4vw,38px);font-weight:600;letter-spacing:.12em;background:#fff;border:1px solid var(--text);padding:10px 18px;}
 .options{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;max-width:640px;margin-top:10px;}
