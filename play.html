@@ -55,7 +55,7 @@ CA.ready(function () {
   function newRound(c) {
     return { c: c, step: "capital", capOk: false, capDone: false, hint: null, capOptions: null,
       flagDone: false, flagOk: false, pick: null, flagOptions: null,
-      mapDone: false, mapOk: false, click: null, target: null, points: 0, mult: 1 };
+      mapDone: false, mapOk: false, aim: null, picker: null, click: null, target: null, points: 0, mult: 1 };
   }
   function capOptionsFor(c) {
     var seen = {}; seen[CA.norm(c.c)] = true;
@@ -242,45 +242,79 @@ CA.ready(function () {
   }
 
   function stepMap(r) {
-    var pins = [];
-    if (r.mapDone) {
-      pins.push({ x: r.click.x, y: r.click.y, r: 8, fill: r.mapOk ? "#1f8a4c" : "#d92b2b", stroke: "#fff" });
-      if (!r.mapOk) pins.push({ x: r.target.x, y: r.target.y, r: 7, fill: "#1f8a4c", stroke: "#fff" });
+    // Карта живёт между перерисовками: иначе после ответа она бы сама вернулась
+    // к виду «весь мир», а человек только что приблизил нужный угол.
+    if (!r.picker) {
+      r.picker = CA.zoomMap({
+        label: "Карта мира: укажите, где находится страна",
+        onPick: function (p) {
+          r.aim = p;
+          r.picker.setMarks([
+            { x: p.x, y: p.y, r: 14, fill: "#d6006c", opacity: 0.18 },
+            { x: p.x, y: p.y, r: 7, fill: "#d6006c", stroke: "#fff" }
+          ]);
+          // Карта переживает перерисовку, а кнопка с подписью — нет, поэтому
+          // обращаемся к ним через ссылку, которую обновляет каждая отрисовка.
+          if (r.onAim) r.onAim();
+        }
+      });
     }
-    var map = CA.mapSvg({
-      highlight: r.mapDone ? r.c.f : null, highlightFill: "#a8ddba", pins: pins,
-      onClick: r.mapDone ? null : function (ev) {
-        var b = ev.currentTarget.getBoundingClientRect();
-        var x = (ev.clientX - b.left) / b.width * 1000, y = (ev.clientY - b.top) / b.height * 500;
-        var lng = x / 1000 * 360 - 180, lat = 90 - y / 500 * 180;
-        var t = CA.project(r.c.lng, r.c.lat);
-        var dist = Math.sqrt(Math.pow(x - t.x, 2) + Math.pow(y - t.y, 2));
-        // На маленьком экране карта физически меньше — палец на телефоне не может быть
-        // ювелирно точным, поэтому не даём зоне допуска становиться уже примерно 28px
-        var minTol = (28 / b.width) * 1000;
-        // Спрашиваем «где страна», а не «где её столица»: клик в Сибири — это Россия,
-        // даже если до Москвы оттуда полкарты. Поэтому смотрим на попадание в контур,
-        // и лишь у крошечных государств без контура — на расстояние до столицы.
-        var ins = CA.insideCountry(r.c.f, lng, lat);
-        r.mapOk = ins === null
-          ? dist <= Math.max(1000 * (CA.SIZE_TOL[r.c.s] || 0.038), minTol)
-          : (ins || (CA.nearCountry(r.c.f, x, y, Math.max(12, minTol)) && !CA.insideAnyOther(r.c.f, lng, lat)));
-        r.mapDone = true; r.click = { x: x, y: y }; r.target = t; render();
-      }
-    });
+    var answer = el("button", { class: "btn primary", type: "button", disabled: !r.aim, onclick: function () {
+      if (!r.aim) return;
+      submitMap(r, r.aim);
+    } }, ["Это здесь · ответить"]);
+    var AIMED = "Метка стоит. Передвиньте её нажатием в другом месте или отвечайте.";
+    var note = el("p", { style: "margin:12px 0 0;font-size:16px;color:var(--n800)" }, [
+      r.aim ? AIMED : "Метку можно двигать сколько угодно: ответ засчитается только по кнопке."
+    ]);
+    r.onAim = function () {
+      answer.disabled = false;
+      note.textContent = AIMED;
+    };
+
     var box = el("div", { style: "padding-top:36px" }, [
       k("Шаг 3 из 3 · где это на карте", "ac"),
       el("h1", { class: "big", style: "font-size:clamp(28px,4vw,44px);margin:14px 0 18px" }, [r.c.n])
     ]);
-    if (!r.mapDone) box.appendChild(el("p", { class: "ask" }, ["Нажмите на карту там, где находится эта страна"]));
-    box.appendChild(map);
-    if (r.mapDone) {
+    if (!r.mapDone) box.appendChild(el("p", { class: "ask", style: "margin-bottom:16px" }, ["Нажмите на карту там, где находится эта страна"]));
+    box.appendChild(r.picker);
+    if (!r.mapDone) {
+      box.appendChild(el("p", { style: "margin:14px 0 0;font-size:15px;color:var(--n700)" }, [
+        "Маленькую страну удобнее искать приближённой: кнопки + и − под картой, двойное нажатие по нужному месту, колесо мыши или щипок двумя пальцами. Приближённую карту можно двигать перетаскиванием."
+      ]));
+      box.appendChild(note);
+      box.appendChild(el("div", { style: "margin-top:16px" }, [answer]));
+    } else {
       box.appendChild(CA.verdict(r.mapOk, r.mapOk
         ? ["Отметка внутри страны. Плюс 10 очков."]
         : ["Зелёная точка — верное место, красная — ваша отметка. Страну добавили в список «Стоит повторить» — он ждёт в конце сессии."]));
       box.appendChild(el("button", { class: "btn primary", type: "button", onclick: finish }, ["Итог раунда"]));
     }
     return box;
+  }
+
+  function submitMap(r, aim) {
+    var t = CA.project(r.c.lng, r.c.lat);
+    var dist = Math.sqrt(Math.pow(aim.x - t.x, 2) + Math.pow(aim.y - t.y, 2));
+    // На маленьком экране карта физически меньше — палец на телефоне не может быть
+    // ювелирно точным, поэтому не даём зоне допуска становиться уже примерно 28px.
+    // При этом чем сильнее приближена карта, тем меньше пиксель — и тем строже допуск.
+    var minTol = 28 * aim.upp;
+    // Спрашиваем «где страна», а не «где её столица»: клик в Сибири — это Россия,
+    // даже если до Москвы оттуда полкарты. Поэтому смотрим на попадание в контур,
+    // и лишь у крошечных государств без контура — на расстояние до столицы.
+    var ins = CA.insideCountry(r.c.f, aim.lng, aim.lat);
+    r.mapOk = ins === null
+      ? dist <= Math.max(1000 * (CA.SIZE_TOL[r.c.s] || 0.038), minTol)
+      : (ins || (CA.nearCountry(r.c.f, aim.x, aim.y, Math.max(12, minTol)) && !CA.insideAnyOther(r.c.f, aim.lng, aim.lat)));
+    r.mapDone = true; r.click = { x: aim.x, y: aim.y }; r.target = t;
+
+    var pins = [{ x: aim.x, y: aim.y, r: 8, fill: r.mapOk ? "#1f8a4c" : "#d92b2b", stroke: "#fff" }];
+    if (!r.mapOk) pins.push({ x: t.x, y: t.y, r: 7, fill: "#1f8a4c", stroke: "#fff" });
+    r.picker.setMarks(pins);
+    r.picker.setHighlight(r.c.f, "#a8ddba");
+    r.picker.stopPicking();
+    render();
   }
 
   function finish() {
