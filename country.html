@@ -18,8 +18,10 @@
 <meta property="og:title" content="Страна мира: столица, флаг и место на карте | Cosmopolitan">
 <meta property="og:description" content="Карточка страны: столица, флаг с фактом о нём, население и карта, где находится государство — включая самые маленькие страны мира.">
 <meta property="og:url" content="https://cosmopolitan-atlas.online/country.html">
-<meta property="og:image" content="https://cosmopolitan-atlas.online/favicon-512.png">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://cosmopolitan-atlas.online/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <title>Страна мира: столица, флаг и место на карте | Cosmopolitan</title>
 <meta name="description" content="Карточка страны: столица, флаг с фактом о нём, население и карта, где находится государство — включая самые маленькие страны мира.">
 <link rel="stylesheet" href="styles.css">
@@ -58,7 +60,7 @@ CA.ready(function () {
     "Регион: " + CA.regionName(c.r) + ".");
   setMeta("property", "og:title", document.title);
   setMeta("property", "og:url", pageUrl);
-  setMeta("property", "og:image", "https://cosmopolitan-atlas.online/flags/" + c.f + ".svg");
+  setMeta("property", "og:image", "https://cosmopolitan-atlas.online/og-cover.jpg");
   var link = document.querySelector('link[rel="canonical"]');
   if (link) link.setAttribute("href", pageUrl);
 
