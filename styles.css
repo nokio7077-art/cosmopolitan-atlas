@@ -71,20 +71,37 @@ main{flex:1;}
 .btn:disabled{opacity:.45;cursor:default;box-shadow:none;}
 .row{display:flex;gap:14px;flex-wrap:wrap;}
 /* Полоса запуска: крупная кнопка и строка о том, что именно сейчас начнётся. */
-/* Во время раунда шапка ужимается до логотипа, счёта и аватара: убирать её
-   целиком оказалось пусто, а два ряда ссылок на телефоне съедали пол-экрана. */
-body.playing .nav .wrap{min-height:54px;gap:14px;padding-top:6px;padding-bottom:6px;}
-body.playing .navlinks{display:none;}
-body.playing .nav-brand{font-size:19px;gap:9px;}
-body.playing .nav-brand .mark{width:34px;height:34px;}
-body.playing .nav-ava{width:36px;height:36px;}
-body.playing .nav-score{font-size:15px;padding:7px 15px 7px 8px;}
-body.playing .nav-score .st{width:22px;height:22px;}
+/* Во время раунда шапка становится игровой строкой: от названия остаётся
+   глобус, меню и аватар уходят, а освободившееся место занимает полоса хода
+   со счётом. Отдельная строка со счётом под шапкой больше не нужна — вместе
+   они съедали на телефоне пол-экрана, из-за чего приходилось листать. */
+body.playing .nav .wrap{min-height:0;gap:12px;padding-top:7px;padding-bottom:7px;flex-wrap:nowrap;}
+body.playing .navlinks,body.playing .nav-right{display:none;}
+body.playing .nav-brand{font-size:0;gap:0;flex:none;}
+body.playing .nav-brand .mark{width:32px;height:32px;}
 body.playing .site-footer{display:none;}
-body.playing .screen{padding-top:12px;}
-@media (max-width:560px){
-  /* на узком экране от названия остаётся только глобус — строка не переносится */
-  body.playing .nav-brand{font-size:0;}
+body.playing .screen{padding-top:10px;}
+
+/* Полоса хода. Жёлтая нарочно: зелёный и красный в игре уже значат «верно» и
+   «неверно», и третий смысл на тех же цветах читался бы как оценка. */
+.gamebar{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+.gb-num{font-size:13px;font-weight:900;color:var(--ink2);white-space:nowrap;}
+.gbar{flex:1;min-width:30px;height:9px;border-radius:999px;background:var(--n200);overflow:hidden;}
+.gbar i{display:block;height:100%;border-radius:999px;background:var(--gold);
+  box-shadow:0 0 0 1px rgba(240,173,0,.35) inset;transition:width .35s ease;}
+.gb-combo{font-size:12px;font-weight:900;color:var(--gold-d);background:var(--gold-l);
+  border-radius:999px;padding:3px 9px;white-space:nowrap;}
+.gb-score{display:flex;align-items:center;gap:6px;background:var(--ink);color:#fff;font-weight:900;
+  font-size:14px;padding:5px 12px 5px 5px;border-radius:999px;white-space:nowrap;}
+.gb-score .st{width:20px;height:20px;border-radius:50%;background:var(--gold);display:grid;place-items:center;flex:none;}
+.gb-score .st svg{width:12px;height:12px;}
+.gb-exit{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  color:var(--ink2);font-size:15px;font-weight:900;background:var(--n200);}
+.gb-exit:hover{background:var(--red-l);color:var(--red-d);}
+@media (max-width:420px){
+  .gb-num{font-size:12px;}
+  .gb-score{font-size:13px;padding:4px 10px 4px 4px;}
+  .gb-combo{display:none;}
 }
 
 /* Карточка результата и кнопки «поделиться». */

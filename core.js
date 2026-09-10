@@ -710,6 +710,41 @@
     else document.body.classList.remove("playing");
   }
 
+  // Полоса хода. Жёлтая нарочно: зелёный и красный в игре уже заняты
+  // ответами, и третий смысл на тех же цветах читался бы как оценка.
+  function gameBar(o) {
+    o = o || {};
+    var pct = Math.max(0, Math.min(1, o.ratio || 0)) * 100;
+    var items = [
+      el("span", { class: "gb-num" }, [o.label || ""]),
+      el("div", {
+        class: "gbar", role: "progressbar", "aria-label": o.aria || o.label,
+        "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(Math.round(pct))
+      }, [el("i", { style: "width:" + pct + "%" })])
+    ];
+    if (o.combo) items.push(el("span", { class: "gb-combo" }, [o.combo]));
+    if (o.score != null) items.push(el("span", { class: "gb-score" }, [
+      el("span", { class: "st", html: ICON_STAR }), String(o.score)
+    ]));
+    items.push(el("a", {
+      class: "gb-exit", href: "index.html", title: "Выйти из игры", "aria-label": "Выйти из игры",
+      onclick: function () { clearSession(); }
+    }, ["✕"]));
+    return el("div", { class: "gamebar" }, items);
+  }
+
+  // Полоса живёт прямо в шапке: во время игры она встаёт на место меню, и
+  // счёт с ходом занимают ту же строку, что и логотип, — на телефоне это
+  // экономит целый экран прокрутки.
+  function playBar(node) {
+    var host = document.querySelector(".nav .wrap");
+    if (!host) return;
+    var old = host.querySelector(".gamebar");
+    if (!node) { if (old) host.removeChild(old); return; }
+    if (old) host.replaceChild(node, old);
+    else host.appendChild(node);
+  }
+
   var SITE = "https://cosmopolitan-atlas.online/";
 
   /* --- картинка результата --- */
@@ -791,7 +826,7 @@
   // Проверяем сразу пустышкой: от ответа зависит, какие кнопки вообще рисовать.
   function canShareFiles() {
     try {
-      if (!navigator.canShare) return false;
+      if (!navigator.share || !navigator.canShare) return false;
       return navigator.canShare({ files: [new File([new Uint8Array(1)], "t.png", { type: "image/png" })] });
     } catch (e) { return false; }
   }
@@ -824,63 +859,64 @@
       document.body.appendChild(a); a.click(); a.remove();
     }
 
+    // Вызывается только там, где система умеет принять файл.
     function doShare() {
       if (!blob) {
         note.textContent = "Готовим картинку…";
         prepare(function () { note.textContent = ""; doShare(); });
         return;
       }
-      var payload = { title: opts.title || "Cosmopolitan Atlas", text: text, url: url };
-      if (files) payload.files = [cardFile()];
-      if (navigator.share) {
-        navigator.share(payload).catch(function () {});
-      } else {
-        saveCard();
-        note.textContent = "Картинка сохранена — прикрепите её к сообщению.";
-      }
+      navigator.share({
+        title: opts.title || "Cosmopolitan Atlas", text: text, url: url, files: [cardFile()]
+      }).catch(function () {});
     }
 
-    // Логотипы Телеграма и ВК узнаются без подписей, а места занимают втрое меньше.
+    // Логотипы Телеграма и ВК узнаются без подписей, а места занимают втрое
+    // меньше. Ссылку в них передаём обычной формой самой соцсети, без чужих
+    // скриптов: и приватнее, и работает даже с блокировщиками. Картинку такая
+    // форма принять не умеет — её отправляет системное «Поделиться».
     function socialBtn(href, icon, name) {
-      var a = el("a", { class: "btn social", href: href, target: "_blank", rel: "noopener noreferrer", title: name, "aria-label": name }, [
+      return el("a", { class: "btn social", href: href, target: "_blank", rel: "noopener noreferrer", title: name, "aria-label": name }, [
         el("img", { src: "art/" + icon + ".webp", alt: "", width: "30", height: "30", loading: "lazy" })
       ]);
-      a.addEventListener("click", function () {
-        note.textContent = "Готовим картинку…";
-        prepare(function () {
-          saveCard();
-          note.textContent = "Картинка сохранена — приложите её к сообщению.";
-        });
-      });
-      return a;
     }
+    var tg = socialBtn("https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text), "tg", "Отправить ссылку в Telegram");
+    var vk = socialBtn("https://vk.com/share.php?noparse=true&url=" + encodeURIComponent(url) +
+      "&title=" + encodeURIComponent(opts.title || "Cosmopolitan — атлас памяти") +
+      "&description=" + encodeURIComponent(text) +
+      "&image=" + encodeURIComponent(SITE + "favicon-512.png"), "vk", "Отправить ссылку во ВКонтакте");
 
-    var shareBtn = el("button", {
-      class: "btn primary iconbtn", type: "button", "aria-label": "Поделиться результатом", title: "Поделиться",
-      html: ICON_SHARE
-    });
-    shareBtn.addEventListener("click", doShare);
-
-    // Если системного «Поделиться» нет вовсе, кнопка-значок повторяла бы
-    // «Сохранить картинку» — тогда не показываем её совсем.
-    var row = el("div", { class: "row" }, navigator.share ? [shareBtn] : []);
+    var row = el("div", { class: "row" }, []);
     if (files) {
-      // Телеграм и ВК сами появятся в системном окне — отдельные кнопки не нужны.
+      // Значок ставим первым: он единственный отправляет саму открытку.
+      var shareBtn = el("button", {
+        class: "btn primary iconbtn", type: "button",
+        "aria-label": "Поделиться открыткой", title: "Поделиться открыткой", html: ICON_SHARE
+      });
+      shareBtn.addEventListener("click", doShare);
+      row.appendChild(shareBtn);
+    }
+    row.appendChild(tg);
+    row.appendChild(vk);
+    if (files) {
       wrap.appendChild(row);
-      wrap.appendChild(el("p", { class: "sharehint" }, ["Картинка с результатом откроется в списке приложений — Telegram, ВКонтакте и куда угодно ещё."]));
+      wrap.appendChild(el("p", { class: "sharehint" }, [
+        "Значок слева отправит открытку с результатом — она откроется в списке приложений. Telegram и ВКонтакте пошлют быструю ссылку без картинки."
+      ]));
     } else {
-      // На компьютере файл через браузер не передать: сохраняем картинку и
-      // открываем форму Телеграма или ВК, куда её остаётся приложить. Формы
-      // открываем обычными ссылками, без чужих скриптов: и приватнее, и
-      // работает даже с блокировщиками.
-      row.appendChild(socialBtn("https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text), "tg", "Отправить в Telegram"));
-      row.appendChild(socialBtn("https://vk.com/share.php?noparse=true&url=" + encodeURIComponent(url) +
-        "&title=" + encodeURIComponent(opts.title || "Cosmopolitan — атлас памяти") +
-        "&description=" + encodeURIComponent(text) +
-        "&image=" + encodeURIComponent(SITE + "favicon-512.png"), "vk", "Отправить во ВКонтакте"));
-      row.appendChild(el("button", { class: "btn ghost", type: "button", onclick: function () { prepare(saveCard); } }, ["Сохранить картинку"]));
+      // На компьютере файл через браузер не передать: там открытку сохраняем,
+      // а к сообщению её остаётся приложить руками.
+      row.appendChild(el("button", {
+        class: "btn ghost", type: "button",
+        onclick: function () {
+          note.textContent = "Готовим картинку…";
+          prepare(function () { saveCard(); note.textContent = "Картинка сохранена — приложите её к сообщению."; });
+        }
+      }, ["Сохранить картинку"]));
       wrap.appendChild(row);
-      wrap.appendChild(el("p", { class: "sharehint" }, ["Картинка сохранится на компьютер — её останется приложить к сообщению."]));
+      wrap.appendChild(el("p", { class: "sharehint" }, [
+        "Telegram и ВКонтакте откроют форму со ссылкой. Открытку сохраните кнопкой справа и приложите к сообщению."
+      ]));
     }
     wrap.appendChild(note);
     if (opts.card) {
@@ -1065,7 +1101,8 @@
     project: project, insideCountry: insideCountry, nearCountry: nearCountry, insideAnyOther: insideAnyOther,
     mapSvg: mapSvg, zoomMap: zoomMap, locator: locator, closeView: closeView, regionIcon: regionIcon,
     countryAt: countryAt, placeName: placeName, distanceKm: distanceKm, formatKm: formatKm,
-    playMode: playMode, shareBlock: shareBlock, resultImage: resultImage,
+    playMode: playMode, gameBar: gameBar, playBar: playBar,
+    shareBlock: shareBlock, resultImage: resultImage,
     population: population, popText: popText, countryCard: countryCard, verdict: verdict,
     currentDisplayName: currentDisplayName, pickPersona: pickPersona,
     submitToLeaderboard: submitToLeaderboard, fetchLeaderboard: fetchLeaderboard, hasServer: !!sb,
