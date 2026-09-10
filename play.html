@@ -71,7 +71,7 @@ CA.ready(function () {
         iso: r.c.f, step: r.step, capOk: r.capOk, capDone: r.capDone, hint: r.hint,
         capOptions: r.capOptions, flagDone: r.flagDone, flagOk: r.flagOk, pick: r.pick,
         flagOptions: r.flagOptions ? r.flagOptions.map(function (c) { return c.f; }) : null,
-        mapDone: r.mapDone, mapOk: r.mapOk, aim: r.aim, click: r.click, target: r.target,
+        mapDone: r.mapDone, mapOk: r.mapOk, mapWhy: r.mapWhy, aim: r.aim, click: r.click, target: r.target,
         points: r.points, mult: r.mult
       } : null
     });
@@ -92,7 +92,7 @@ CA.ready(function () {
       var c = CA.byIso(s.round.iso) || st.queue[st.i];
       var r = newRound(c);
       ["step", "capOk", "capDone", "hint", "capOptions", "flagDone", "flagOk", "pick",
-       "mapDone", "mapOk", "aim", "click", "target", "points", "mult"].forEach(function (key) {
+       "mapDone", "mapOk", "mapWhy", "aim", "click", "target", "points", "mult"].forEach(function (key) {
         if (s.round[key] !== undefined && s.round[key] !== null) r[key] = s.round[key];
       });
       if (s.round.flagOptions) r.flagOptions = s.round.flagOptions.map(CA.byIso).filter(Boolean);
@@ -363,12 +363,22 @@ CA.ready(function () {
       box.appendChild(note);
       box.appendChild(el("div", { style: "margin-top:16px" }, [answer]));
     } else {
-      box.appendChild(CA.verdict(r.mapOk, r.mapOk
-        ? ["Отметка внутри страны. Плюс 10 очков."]
-        : missText(r)));
+      box.appendChild(CA.verdict(r.mapOk, r.mapOk ? hitText(r) : missText(r)));
       box.appendChild(el("button", { class: "btn primary", type: "button", onclick: finish }, ["Итог раунда"]));
     }
     return box;
+  }
+
+  // Попадание тоже объясняем: «внутри контура» и «в двух шагах от островка,
+  // который на карте не нарисовать» — разные вещи, и человек вправе знать, за
+  // что ему поставили балл.
+  function hitText(r) {
+    if (r.mapWhy === "inside") return ["Отметка внутри страны. Плюс 10 очков."];
+    if (r.mapWhy === "near") return ["Отметка у самой границы — засчитано. Плюс 10 очков."];
+    var lng = r.aim ? r.aim.lng : (r.click.x / 1000 * 360 - 180);
+    var lat = r.aim ? r.aim.lat : (90 - r.click.y / 500 * 180);
+    var km = CA.formatKm(CA.distanceKm(lng, lat, r.c.lng, r.c.lat));
+    return [r.c.n + " настолько мала, что контур на карте не нарисовать, — засчитываем отметку рядом: до неё около " + km + ". Плюс 10 очков."];
   }
 
   // Промах объясняем предметно: куда именно попала отметка и как далеко это от
@@ -388,17 +398,25 @@ CA.ready(function () {
   function submitMap(r, aim) {
     var t = CA.project(r.c.lng, r.c.lat);
     var dist = Math.sqrt(Math.pow(aim.x - t.x, 2) + Math.pow(aim.y - t.y, 2));
-    // На маленьком экране карта физически меньше — палец на телефоне не может быть
-    // ювелирно точным, поэтому не даём зоне допуска становиться уже примерно 28px.
-    // При этом чем сильнее приближена карта, тем меньше пиксель — и тем строже допуск.
-    var minTol = 28 * aim.upp;
+    // Допуск считаем в экранных пикселях: сколько бы карту ни приближали, промах
+    // шириной в палец засчитываем — но не больше. Запас по размеру страны здесь
+    // потолок, а не пол: раньше он был полом и побеждал приближение. У Мальты
+    // он равен 22 единицам карты, то есть почти 800 км, и отметка на Балканах
+    // шла в зачёт даже при десятикратном увеличении.
+    var finger = Math.max(28 * aim.upp, 3);
     // Спрашиваем «где страна», а не «где её столица»: клик в Сибири — это Россия,
     // даже если до Москвы оттуда полкарты. Поэтому смотрим на попадание в контур,
     // и лишь у крошечных государств без контура — на расстояние до столицы.
     var ins = CA.insideCountry(r.c.f, aim.lng, aim.lat);
-    r.mapOk = ins === null
-      ? dist <= Math.max(1000 * (CA.SIZE_TOL[r.c.s] || 0.038), minTol)
-      : (ins || (CA.nearCountry(r.c.f, aim.x, aim.y, Math.max(12, minTol)) && !CA.insideAnyOther(r.c.f, aim.lng, aim.lat)));
+    if (ins === null) {
+      r.mapOk = dist <= Math.min(1000 * (CA.SIZE_TOL[r.c.s] || 0.038), finger);
+      r.mapWhy = "dot";
+    } else if (ins) {
+      r.mapOk = true; r.mapWhy = "inside";
+    } else {
+      r.mapOk = CA.nearCountry(r.c.f, aim.x, aim.y, Math.min(12, finger)) && !CA.insideAnyOther(r.c.f, aim.lng, aim.lat);
+      r.mapWhy = "near";
+    }
     r.mapDone = true; r.click = { x: aim.x, y: aim.y }; r.target = t;
 
     var pins = [{ x: aim.x, y: aim.y, r: 8, fill: r.mapOk ? "#1f8a4c" : "#d92b2b", stroke: "#fff" }];
