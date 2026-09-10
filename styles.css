@@ -368,11 +368,13 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
 /* На светлом низу градиента белый текст теряется — добавляем ему плотности. */
 .pausepage .lost .sub{color:#fff;text-shadow:0 2px 12px rgba(9,54,120,.28);}
 .pausepage .lost h1,.pausepage .lost-num{text-shadow:0 4px 18px rgba(9,54,120,.3);}
-.pause-chip{display:inline-block;margin:0 0 16px;padding:8px 18px;border-radius:999px;
-  background:rgba(255,255,255,.2);font-size:13px;font-weight:900;letter-spacing:.04em;
-  text-transform:uppercase;color:#fff;}
 .pausepage .lost h1{font-size:clamp(23px,3.6vw,38px);max-width:19ch;}
 .pause-mail{font-size:15px;line-height:24px;font-weight:700;color:#fff;margin:16px 0 0;
   text-shadow:0 2px 12px rgba(9,54,120,.28);}
 .pause-mail a{color:#fff;text-decoration:underline;text-underline-offset:3px;}
 .pause-mail a:hover{color:var(--gold);}
+/* Кнопка белым по синему. На золотом фоне белые буквы дают контраст 1,6:1 —
+   это нечитаемо; фирменный синий с белым даёт 5,5:1. */
+.pausepage .btn.primary{background:var(--blue-d);border-color:var(--blue-d);color:#fff;
+  box-shadow:0 10px 24px rgba(15,47,94,.28);}
+.pausepage .btn.primary:hover{background:var(--ink);border-color:var(--ink);color:#fff;}
