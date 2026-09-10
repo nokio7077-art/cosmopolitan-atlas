@@ -884,7 +884,7 @@
     var vk = socialBtn("https://vk.com/share.php?noparse=true&url=" + encodeURIComponent(url) +
       "&title=" + encodeURIComponent(opts.title || "Cosmopolitan — атлас памяти") +
       "&description=" + encodeURIComponent(text) +
-      "&image=" + encodeURIComponent(SITE + "favicon-512.png"), "vk", "Отправить ссылку во ВКонтакте");
+      "&image=" + encodeURIComponent(SITE + "og-cover.jpg"), "vk", "Отправить ссылку во ВКонтакте");
 
     var row = el("div", { class: "row" }, []);
     if (files) {
@@ -901,7 +901,7 @@
     if (files) {
       wrap.appendChild(row);
       wrap.appendChild(el("p", { class: "sharehint" }, [
-        "Значок слева отправит открытку с результатом — она откроется в списке приложений. Telegram и ВКонтакте пошлют быструю ссылку без картинки."
+        "Открытку с вашим результатом отправит значок слева — она откроется в списке приложений. Telegram и ВКонтакте пошлют ссылку с карточкой сайта: свой файл их форма принять не умеет."
       ]));
     } else {
       // На компьютере файл через браузер не передать: там открытку сохраняем,
@@ -915,7 +915,7 @@
       }, ["Сохранить картинку"]));
       wrap.appendChild(row);
       wrap.appendChild(el("p", { class: "sharehint" }, [
-        "Telegram и ВКонтакте откроют форму со ссылкой. Открытку сохраните кнопкой справа и приложите к сообщению."
+        "Telegram и ВКонтакте откроют форму со ссылкой и карточкой сайта. Открытку с вашим результатом сохраните кнопкой справа и приложите к сообщению."
       ]));
     }
     wrap.appendChild(note);
