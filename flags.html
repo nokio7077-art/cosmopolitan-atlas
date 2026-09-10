@@ -162,7 +162,15 @@ CA.ready(function () {
         el("button", { class: "btn primary", type: "button", onclick: function () { start(n); } }, ["Играть ещё раз"]),
         el("button", { class: "btn ghost", type: "button", onclick: function () { st.view = "regions"; render(); } }, ["Другой регион"])
       ]),
-      CA.shareBlock({ text: shareText, title: "Мой результат в Cosmopolitan Atlas" })
+      CA.shareBlock({
+        text: shareText, title: "Мой результат в Cosmopolitan Atlas",
+        card: {
+          badge: pct === 100 ? "ни одной осечки" : "флаги",
+          score: st.correct + "/" + n,
+          sub: CA.regionName(st.region) + " · " + pct + "% верных",
+          rows: [["Показано флагов", String(n)], ["Узнано", String(st.correct)], ["Ошибок", String(n - st.correct)]]
+        }
+      })
     ]);
   }
 

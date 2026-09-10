@@ -711,6 +711,82 @@
   }
 
   var SITE = "https://cosmopolitan-atlas.online/";
+
+  /* --- картинка результата --- */
+  // Текстом делиться скучно, поэтому рисуем открытку прямо в браузере: фон с
+  // картой мира из наших же контуров, белая панель со счётом и разбивкой.
+  // Ничего не грузим со стороны — только собственный значок сайта.
+  var CARD_W = 1024, CARD_H = 1536;
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  }
+  // Рисуем на присланной рамке: глобус с самолётом и облаками там уже есть, наше
+  // дело — вписать текст в белую панель. Если рамка не загрузилась, рисуем фон
+  // сами, чтобы открытка всё равно получилась.
+  function resultImage(o, cb) {
+    var c = document.createElement("canvas");
+    c.width = CARD_W; c.height = CARD_H;
+    var g = c.getContext("2d");
+    var frame = new Image();
+    frame.onload = function () { g.drawImage(frame, 0, 0, CARD_W, CARD_H); paint(); };
+    frame.onerror = function () { fallbackBg(); paint(); };
+    frame.src = "art/share-frame.webp";
+
+    function fallbackBg() {
+      var grad = g.createLinearGradient(0, 0, 0, CARD_H);
+      grad.addColorStop(0, "#2b7fff"); grad.addColorStop(1, "#1147b0");
+      g.fillStyle = grad; g.fillRect(0, 0, CARD_W, CARD_H);
+      g.fillStyle = "#eef6ff";
+      roundRect(g, 74, 330, CARD_W - 148, 900, 46); g.fill();
+    }
+
+    function paint() {
+      var F = "Nunito, 'Segoe UI', system-ui, sans-serif";
+      // Границы белой панели измерены по самой рамке: свободное поле под
+      // глобусом начинается на 472-й точке и идёт до волны внизу, по бокам
+      // панель от 91 до 932. Держимся внутри с отступом.
+      var px = 132, pw = CARD_W - px * 2, mid = CARD_W / 2;
+      g.textAlign = "center";
+
+      var y = 560;
+      g.fillStyle = "#6a86a8"; g.font = "800 27px " + F;
+      g.fillText((o.badge || "результат сессии").toUpperCase(), mid, y);
+      y += 142;
+      g.fillStyle = "#1a63d8"; g.font = "900 152px " + F;
+      g.fillText(String(o.score), mid, y);
+      y += 58;
+      g.fillStyle = "#0f2f5e"; g.font = "800 34px " + F;
+      g.fillText(o.sub || "", mid, y);
+
+      y += 96;
+      (o.rows || []).forEach(function (row) {
+        g.strokeStyle = "rgba(15,47,94,.12)"; g.lineWidth = 2;
+        g.beginPath(); g.moveTo(px, y + 22); g.lineTo(px + pw, y + 22); g.stroke();
+        g.textAlign = "left"; g.fillStyle = "#3a5a86"; g.font = "700 34px " + F;
+        g.fillText(row[0], px, y);
+        g.textAlign = "right"; g.fillStyle = "#0f2f5e"; g.font = "900 34px " + F;
+        g.fillText(row[1], px + pw, y);
+        g.textAlign = "center";
+        y += 76;
+      });
+
+      g.fillStyle = "#4d6b91"; g.font = "800 30px " + F;
+      g.fillText("cosmopolitan-atlas.online", mid, 1218);
+
+      c.toBlob(function (blob) { cb(blob, c.toDataURL("image/png")); }, "image/png");
+    }
+  }
+
+  var ICON_SHARE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>' +
+    '<path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
+
   // Телеграм и ВК открываем обычными ссылками на их формы, без подключения
   // чужих скриптов: и приватнее, и работает даже с блокировщиками.
   function shareBlock(opts) {
@@ -723,27 +799,55 @@
       "&image=" + encodeURIComponent(SITE + "favicon-512.png");
 
     var note = el("span", { class: "sharenote" }, []);
-    var copy = el("button", { class: "btn ghost", type: "button", onclick: function () {
-      var full = text + "\n" + url;
-      function done(ok) { note.textContent = ok ? "Скопировано" : "Не вышло скопировать — выделите текст вручную."; }
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(full).then(function () { done(true); }, function () { done(false); });
-      } else done(false);
-    } }, ["Скопировать"]);
+    var blob = null, dataUrl = null;
+    var preview = el("img", { class: "sharecard", alt: "Картинка с результатом" });
+    var wrap = el("div", { class: "sharebar" }, [kicker("Поделиться результатом")]);
 
-    var row = el("div", { class: "row" }, [
-      el("a", { class: "btn tg", href: tg, target: "_blank", rel: "noopener noreferrer" }, ["Telegram"]),
-      el("a", { class: "btn vk", href: vk, target: "_blank", rel: "noopener noreferrer" }, ["ВКонтакте"]),
-      copy
-    ]);
-    // На телефоне родное меню «Поделиться» удобнее любых кнопок — если оно есть,
-    // ставим его первым.
-    if (navigator.share) {
-      row.insertBefore(el("button", { class: "btn primary", type: "button", onclick: function () {
-        navigator.share({ title: opts.title || "Cosmopolitan", text: text, url: url }).catch(function () {});
-      } }, ["Поделиться"]), row.firstChild);
+    var shareBtn = el("button", {
+      class: "btn primary iconbtn", type: "button", "aria-label": "Поделиться результатом", title: "Поделиться",
+      html: ICON_SHARE
+    });
+    shareBtn.addEventListener("click", function () {
+      var files = blob ? [new File([blob], "cosmopolitan-atlas.png", { type: "image/png" })] : null;
+      var payload = { title: opts.title || "Cosmopolitan Atlas", text: text, url: url };
+      if (files && navigator.canShare && navigator.canShare({ files: files })) payload.files = files;
+      if (navigator.share) {
+        navigator.share(payload).catch(function () {});
+      } else if (dataUrl) {
+        saveCard();
+        note.textContent = "Браузер не умеет делиться напрямую — картинка сохранена, отправьте её вручную.";
+      }
+    });
+    function saveCard() {
+      if (!dataUrl) return;
+      var a = el("a", { href: dataUrl, download: "cosmopolitan-atlas.png" }, []);
+      document.body.appendChild(a); a.click(); a.remove();
     }
-    return el("div", { class: "sharebar" }, [kicker("Поделиться результатом"), row, note]);
+    var saveBtn = el("button", { class: "btn ghost", type: "button", onclick: saveCard }, ["Сохранить картинку"]);
+
+    // Логотипы Телеграма и ВК узнаются без подписей, а места занимают втрое меньше.
+    function socialBtn(href, icon, name) {
+      return el("a", { class: "btn social", href: href, target: "_blank", rel: "noopener noreferrer", title: name, "aria-label": name }, [
+        el("img", { src: "art/" + icon + ".webp", alt: "", width: "30", height: "30", loading: "lazy" })
+      ]);
+    }
+    wrap.appendChild(el("div", { class: "row" }, [
+      shareBtn,
+      socialBtn(tg, "tg", "Поделиться в Telegram"),
+      socialBtn(vk, "vk", "Поделиться во ВКонтакте"),
+      saveBtn
+    ]));
+    wrap.appendChild(note);
+    if (opts.card) {
+      wrap.appendChild(preview);
+      // Шрифт подгружается асинхронно; без ожидания открытка нарисуется системным.
+      var draw = function () {
+        resultImage(opts.card, function (b, d) { blob = b; dataUrl = d; preview.src = d; });
+      };
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw, draw);
+      else draw();
+    }
+    return wrap;
   }
 
   /* --- рейтинг --- */
@@ -849,7 +953,7 @@
   ];
   var ICON_STAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="#1b1200"><path d="M12 2.6l2.7 5.9 6.3.7-4.7 4.3 1.3 6.3L12 16.6 6.4 19.8l1.3-6.3L3 9.2l6.3-.7z"/></svg>';
   function brandMark() {
-    return el("img", { class: "mark", src: "art/globe.png", alt: "", width: "44", height: "44" });
+    return el("img", { class: "mark", src: "art/globe.webp", alt: "", width: "44", height: "44" });
   }
   // Значки регионов — рисованные, лежат в art/.
   var REGION_ART = {
@@ -858,7 +962,7 @@
   };
   function regionIcon(key, size) {
     return el("img", {
-      class: "ricon", src: "art/" + (REGION_ART[key] || "globe") + ".png", alt: "",
+      class: "ricon", src: "art/" + (REGION_ART[key] || "globe") + ".webp", alt: "",
       loading: "lazy", decoding: "async", style: size ? "width:" + size + "px;height:" + size + "px" : null
     });
   }
@@ -873,7 +977,7 @@
         links,
         el("div", { class: "nav-right" }, [
           el("a", { class: "nav-ava", href: "settings.html", "aria-label": "Настройки игрока" }, [
-            el("img", { src: "art/avatar.png", alt: "", width: "44", height: "44" })
+            el("img", { src: "art/avatar.webp", alt: "", width: "44", height: "44" })
           ]),
           el("a", { class: "nav-score", href: "settings.html", title: "Лучший результат за сессию" }, [
             el("span", { class: "st", html: ICON_STAR }),
@@ -920,7 +1024,7 @@
     project: project, insideCountry: insideCountry, nearCountry: nearCountry, insideAnyOther: insideAnyOther,
     mapSvg: mapSvg, zoomMap: zoomMap, locator: locator, closeView: closeView, regionIcon: regionIcon,
     countryAt: countryAt, placeName: placeName, distanceKm: distanceKm, formatKm: formatKm,
-    playMode: playMode, shareBlock: shareBlock,
+    playMode: playMode, shareBlock: shareBlock, resultImage: resultImage,
     population: population, popText: popText, countryCard: countryCard, verdict: verdict,
     currentDisplayName: currentDisplayName, pickPersona: pickPersona,
     submitToLeaderboard: submitToLeaderboard, fetchLeaderboard: fetchLeaderboard, hasServer: !!sb,
