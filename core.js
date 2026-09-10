@@ -216,12 +216,141 @@
       PATHS[iso] = d;
     }
   }
+  /* --- политическая раскраска --- */
+  // Соседние страны должны отличаться по цвету, иначе граница между ними теряется.
+  // Точный список соседей считать неоткуда, поэтому соседство определяем по
+  // близости рамок кусков суши, а дальше — обычная жадная раскраска.
+  var POLI_COLORS = ["#f7d9a8", "#cfe6b4", "#bcdcf2", "#f3c9c3", "#dfd2f0", "#f8ecab", "#c3e4dc", "#f0cfe0", "#dde3b8"];
+  var POLI = null;
+  function boxesNear(a, b, tol) {
+    return a.x0 - tol <= b.x1 && b.x0 - tol <= a.x1 && a.y0 - tol <= b.y1 && b.y0 - tol <= a.y1;
+  }
+  function buildPolitical() {
+    POLI = {};
+    var isos = [], big = {}, i, j;
+    for (var iso in window.GEO_DATA) {
+      var g = geom(iso);
+      if (!g) continue;
+      isos.push(iso);
+      big[iso] = g.boxes;
+    }
+    var nb = {};
+    isos.forEach(function (a) { nb[a] = []; });
+    for (i = 0; i < isos.length; i++) {
+      for (j = i + 1; j < isos.length; j++) {
+        var A = big[isos[i]], B = big[isos[j]], touch = false;
+        for (var x = 0; x < A.length && !touch; x++) {
+          for (var y = 0; y < B.length; y++) {
+            if (boxesNear(A[x], B[y], 1.2)) { touch = true; break; }
+          }
+        }
+        if (touch) { nb[isos[i]].push(isos[j]); nb[isos[j]].push(isos[i]); }
+      }
+    }
+    // Начинаем с самых «многососедних» стран — так реже приходится брать
+    // девятый цвет там, где хватило бы четырёх.
+    isos.sort(function (a, b) { return nb[b].length - nb[a].length; });
+    isos.forEach(function (iso) {
+      var used = {};
+      nb[iso].forEach(function (o) { if (POLI[o] !== undefined) used[POLI[o]] = true; });
+      var c = 0;
+      while (used[c] && c < POLI_COLORS.length - 1) c++;
+      POLI[iso] = c;
+    });
+  }
+  function politicalFill(iso) {
+    if (!POLI) buildPolitical();
+    // Антарктида, Гренландия, Западная Сахара есть в контурах, но в списке 192
+    // стран их нет — красим нейтральным, чтобы не выдавать их за государства.
+    if (!byIso(iso)) return "#e4eaf2";
+    var c = POLI[iso];
+    return POLI_COLORS[c === undefined ? 0 : c];
+  }
+
+  /* --- подписи стран --- */
+  // Ставим подпись в центр тяжести самого крупного куска суши; если он оказался
+  // вне страны (Чили, Норвегия, Хорватия — вытянутые и изогнутые), отступаем к
+  // столице: она заведомо внутри.
+  function ringCentroid(ring) {
+    var a = 0, cx = 0, cy = 0;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var f = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+      a += f; cx += (ring[j][0] + ring[i][0]) * f; cy += (ring[j][1] + ring[i][1]) * f;
+    }
+    if (!a) return null;
+    return [cx / (3 * a), cy / (3 * a)];
+  }
+  var LABELS = null;
+  function buildLabels() {
+    LABELS = COUNTRIES.map(function (c) {
+      var g = geom(c.f), anchor = null, w = 0, h = 0;
+      if (g) {
+        var raw = window.GEO_DATA[c.f], blocks = raw.t === 0 ? [raw.c] : raw.c;
+        var best = null, bestArea = -1, bi = 0;
+        for (var b = 0; b < g.boxes.length; b++) {
+          var bx = g.boxes[b], area = (bx.x1 - bx.x0) * (bx.y1 - bx.y0);
+          if (area > bestArea) { bestArea = area; best = bx; bi = b; }
+        }
+        w = best.x1 - best.x0; h = best.y1 - best.y0;
+        var ctr = ringCentroid(blocks[bi][0]);
+        if (ctr && insideCountry(c.f, ctr[0], ctr[1])) anchor = project(ctr[0], ctr[1]);
+      }
+      if (!anchor) anchor = project(c.lng, c.lat);
+      return { n: c.n, f: c.f, x: anchor.x, y: anchor.y, w: w, h: h, tiny: !g };
+    }).sort(function (a, b) { return (b.w * b.h) - (a.w * a.h); });
+  }
+  function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  // Подписи появляются по мере приближения: сначала крупные страны, потом мелкие,
+  // микрогосударства — только когда карта увеличена настолько, что им есть где
+  // поместиться. Наложившиеся подписи пропускаем — лучше меньше, но читаемо.
+  function labelsMarkup(view, boxW) {
+    if (!LABELS) buildLabels();
+    var f = 11 * view.w / Math.max(200, boxW);
+    var placed = [], out = "";
+    for (var i = 0; i < LABELS.length; i++) {
+      var L = LABELS[i];
+      if (L.tiny ? view.w > 200 : (L.w / view.w * boxW) < 34) continue;
+      if (L.x < view.x || L.x > view.x + view.w || L.y < view.y || L.y > view.y + view.h) continue;
+      var ty = L.y + (L.tiny ? f * 1.6 : f * 0.35);
+      var tw = L.n.length * 0.52 * f, th = f * 1.2;
+      var bx = { x0: L.x - tw / 2, x1: L.x + tw / 2, y0: ty - th, y1: ty + th * 0.3 };
+      var clash = false;
+      for (var j = 0; j < placed.length; j++) {
+        if (boxesNear(bx, placed[j], f * 0.25)) { clash = true; break; }
+      }
+      if (clash) continue;
+      placed.push(bx);
+      if (L.tiny) out += '<circle cx="' + L.x.toFixed(1) + '" cy="' + L.y.toFixed(1) + '" r="' + (f * 0.32).toFixed(2) + '" fill="#e8523f"/>';
+      out += '<text x="' + L.x.toFixed(1) + '" y="' + ty.toFixed(1) + '" font-size="' + f.toFixed(2) +
+        '" text-anchor="middle" fill="#26456f" stroke="#fff" stroke-width="' + (f * 0.28).toFixed(2) +
+        '" paint-order="stroke" style="font-weight:700">' + esc(L.n) + "</text>";
+    }
+    return out;
+  }
+  // Какая страна под точкой: сначала контуры, потом — ближайшее из государств
+  // без контура, если тыкнули рядом с ним.
+  function countryAt(lng, lat, tolDeg) {
+    for (var iso in window.GEO_DATA) {
+      var c = byIso(iso);
+      if (c && insideCountry(iso, lng, lat)) return c;
+    }
+    var best = null, bestD = tolDeg || 3;
+    for (var i = 0; i < COUNTRIES.length; i++) {
+      var c = COUNTRIES[i];
+      if (window.GEO_DATA[c.f]) continue;
+      var d = Math.sqrt(Math.pow(c.lng - lng, 2) + Math.pow(c.lat - lat, 2));
+      if (d < bestD) { bestD = d; best = c; }
+    }
+    return best;
+  }
+
   // Разметка стран и отметок вынесена отдельно: статичной карте она нужна один раз,
   // а карте с приближением — заново на каждом шаге зума.
   function countryPaths(opts, scale, fixedStroke) {
     var out = "";
     for (var iso in PATHS) {
-      var fill = opts.highlight === iso ? (opts.highlightFill || "#ffd66b") : "#d5e8c4";
+      var fill = opts.highlight === iso ? (opts.highlightFill || "#ffd66b")
+        : (opts.political ? politicalFill(iso) : "#d5e8c4");
       out += '<path d="' + PATHS[iso] + '" fill="' + fill + '" stroke="#9cba86" stroke-width="' +
         (fixedStroke ? "0.5" : (0.5 * scale).toFixed(3)) + '"' +
         (fixedStroke ? ' vector-effect="non-scaling-stroke"' : "") + "/>";
@@ -266,14 +395,18 @@
   function zoomMap(opts) {
     opts = opts || {};
     if (!PATHS) buildPaths();
+    // В игре карта — мишень, поэтому курсор-перекрестие и умеренное приближение.
+    // В атласе по ней просто гуляют и читают подписи, там нужно куда ближе.
+    var MAX = opts.maxZoom || MAX_ZOOM;
     var view = { x: 0, y: 0, w: 1000, h: 500 }, pins = [], picking = true;
-    var box = el("div", { class: "mapbox play zoom" , html:
+    var box = el("div", { class: "mapbox zoom" + (opts.explore ? " explore" : " play"), html:
       '<svg viewBox="0 0 1000 500" preserveAspectRatio="none" role="img" aria-label="' + (opts.label || "Карта мира") + '">' +
       '<rect x="0" y="0" width="1000" height="500" fill="#d9ecff"/>' +
-      countryPaths({}, 1, true) +
+      countryPaths({ political: opts.political }, 1, true) +
       '<path class="hl" d="" fill="none"/>' +
-      '<g class="marks"></g></svg>' });
-    var svg = box.querySelector("svg"), hl = box.querySelector(".hl"), marks = box.querySelector(".marks");
+      '<g class="marks"></g><g class="labels"></g></svg>' });
+    var svg = box.querySelector("svg"), hl = box.querySelector(".hl"),
+        marks = box.querySelector(".marks"), labels = box.querySelector(".labels");
 
     // Кнопки живут под картой, а не поверх неё: наложенные, они закрывали бы
     // северо-восток карты — по Японии и Камчатке было бы просто не попасть.
@@ -292,9 +425,12 @@
       view.y = Math.max(0, Math.min(500 - view.h, view.y));
       svg.setAttribute("viewBox", view.x.toFixed(2) + " " + view.y.toFixed(2) + " " + view.w.toFixed(2) + " " + view.h.toFixed(2));
       marks.innerHTML = markMarkup({ pins: pins }, view.w / 1000);
+      // Подписи зависят не только от окна просмотра, но и от того, сколько
+      // пикселей на экране занимает карта: на телефоне их помещается меньше.
+      if (opts.labels) labels.innerHTML = labelsMarkup(view, pxWidth());
       var zoomed = view.w < 999.5;
       if (zoomed) box.classList.add("zoomed"); else box.classList.remove("zoomed");
-      plus.disabled = view.w <= 1000 / MAX_ZOOM + 0.01;
+      plus.disabled = view.w <= 1000 / MAX + 0.01;
       minus.disabled = !zoomed;
       reset.disabled = !zoomed;
       scale.textContent = (Math.round(1000 / view.w * 10) / 10) + "×";
@@ -303,13 +439,17 @@
     // должна остаться на месте, иначе карта «убегает» при каждом приближении.
     function zoomAt(factor, u, v) {
       var fx = view.x + u * view.w, fy = view.y + v * view.h;
-      var w = Math.max(1000 / MAX_ZOOM, Math.min(1000, view.w / factor));
+      var w = Math.max(1000 / MAX, Math.min(1000, view.w / factor));
       view.x = fx - u * w; view.y = fy - v * (w / 2); view.w = w;
       apply();
     }
     function frac(cx, cy) {
       var b = box.getBoundingClientRect();
       return { u: (cx - b.left) / b.width, v: (cy - b.top) / b.height, b: b };
+    }
+    function pxWidth() {
+      var w = box.getBoundingClientRect().width;
+      return w > 0 ? w : 1000;
     }
     function dist(a, b) { return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2)); }
 
@@ -398,7 +538,17 @@
     };
     // После ответа карта остаётся живой: приблизить и рассмотреть можно, ткнуть — нет.
     wrap.stopPicking = function () { picking = false; box.classList.remove("play"); };
+    wrap.refresh = apply;
     apply();
+    // На момент сборки ширины у карты ещё нет, а от неё зависят подписи —
+    // пересчитываем, как только карта окажется на странице, и при смене размера.
+    if (opts.labels) {
+      setTimeout(apply, 0);
+      window.addEventListener("resize", function () {
+        clearTimeout(wrap.__rt);
+        wrap.__rt = setTimeout(apply, 180);
+      });
+    }
     return wrap;
   }
 
@@ -619,7 +769,7 @@
   /* --- шапка, подвал, куки --- */
   var NAV = [
     ["index.html", "Главная"], ["play.html", "Играть"], ["flags.html", "Флаги"],
-    ["learn.html", "Карточки"], ["board.html", "Рейтинг"], ["stats.html", "Статистика"]
+    ["learn.html", "Карточки"], ["map.html", "Карта"], ["board.html", "Рейтинг"], ["stats.html", "Статистика"]
   ];
   var ICON_STAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="#1b1200"><path d="M12 2.6l2.7 5.9 6.3.7-4.7 4.3 1.3 6.3L12 16.6 6.4 19.8l1.3-6.3L3 9.2l6.3-.7z"/></svg>';
   function brandMark() {
@@ -693,6 +843,7 @@
     saveSession: saveSession, loadSession: loadSession, clearSession: clearSession,
     project: project, insideCountry: insideCountry, nearCountry: nearCountry, insideAnyOther: insideAnyOther,
     mapSvg: mapSvg, zoomMap: zoomMap, locator: locator, closeView: closeView, regionIcon: regionIcon,
+    countryAt: countryAt,
     population: population, popText: popText, countryCard: countryCard, verdict: verdict,
     currentDisplayName: currentDisplayName, pickPersona: pickPersona,
     submitToLeaderboard: submitToLeaderboard, fetchLeaderboard: fetchLeaderboard, hasServer: !!sb,

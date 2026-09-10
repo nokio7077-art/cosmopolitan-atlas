@@ -70,6 +70,11 @@ main{flex:1;}
 .btn.block{display:block;width:100%;}
 .btn:disabled{opacity:.45;cursor:default;box-shadow:none;}
 .row{display:flex;gap:14px;flex-wrap:wrap;}
+/* Полоса запуска: крупная кнопка и строка о том, что именно сейчас начнётся. */
+.startbar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-top:22px;border-top:2px solid var(--n200);}
+.btn.go{font-size:20px;line-height:24px;padding:17px 38px;min-height:62px;font-weight:900;letter-spacing:-.02em;}
+.startnote{font-size:16px;color:var(--ink2);font-weight:700;}
+@media (max-width:520px){.btn.go{width:100%;}}
 .grid{display:grid;gap:40px;}
 .two{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));}
 
@@ -141,6 +146,16 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
 .mapbtn:hover:not(:disabled){background:var(--blue);border-color:var(--blue);color:#fff;}
 .mapbtn.wide{width:auto;height:48px;padding:0 18px;font-size:16px;font-weight:800;}
 .mapbtn:disabled{opacity:.4;cursor:default;box-shadow:none;}
+/* Панель под политической картой: что за страну сейчас ткнули. */
+.mapinfo{display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:var(--surface);border-radius:var(--r);box-shadow:var(--sh-sm);padding:16px 20px;margin-top:22px;}
+.mapinfo.empty{color:var(--ink3);font-weight:600;}
+.mapinfo .mi-flag{width:78px;aspect-ratio:3/2;object-fit:cover;border-radius:8px;box-shadow:var(--sh-sm);flex:none;}
+.mapinfo .mi-body{flex:1;min-width:180px;}
+.mapinfo .mi-name{font-weight:900;font-size:23px;letter-spacing:-.03em;line-height:1.15;}
+.mapinfo .mi-meta{font-size:16px;color:var(--ink2);}
+.mapbox.explore{cursor:pointer;}
+.mapbox.zoom.explore.zoomed{cursor:grab;}
+.mapbox.zoom.explore.zoomed:active{cursor:grabbing;}
 .mapscale{font-size:15px;color:var(--ink3);font-weight:800;margin-left:2px;}
 
 .ask{font-weight:900;font-size:clamp(23px,3vw,36px);line-height:1.2;letter-spacing:-.03em;color:var(--ink);margin:0 0 22px;}
