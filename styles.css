@@ -71,6 +71,25 @@ main{flex:1;}
 .btn:disabled{opacity:.45;cursor:default;box-shadow:none;}
 .row{display:flex;gap:14px;flex-wrap:wrap;}
 /* Полоса запуска: крупная кнопка и строка о том, что именно сейчас начнётся. */
+/* Во время раунда шапка и подвал не нужны: место на телефоне дороже. */
+body.playing .nav, body.playing .site-footer{display:none;}
+body.playing .screen{padding-top:10px;}
+
+/* Карточка результата и кнопки «поделиться». */
+.result{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh-md);padding:clamp(20px,3vw,30px);}
+.result .num{margin:2px 0 2px;}
+.result-sub{font-size:17px;color:var(--ink2);font-weight:700;margin:0 0 20px;}
+.result-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px 24px;margin-top:4px;}
+.result-rows div{display:flex;justify-content:space-between;gap:10px;border-bottom:2px solid var(--n200);padding-bottom:7px;font-size:16px;}
+.result-rows b{font-weight:800;}
+.sharebar{margin-top:24px;}
+.sharebar .row{margin-top:10px;}
+.sharenote{display:block;margin-top:10px;font-size:15px;color:var(--ink2);font-weight:700;}
+.btn.tg{background:#2aabee;border-color:#2aabee;color:#fff;box-shadow:0 10px 22px rgba(42,171,238,.28);}
+.btn.tg:hover{background:#1c93d2;border-color:#1c93d2;color:#fff;}
+.btn.vk{background:#0077ff;border-color:#0077ff;color:#fff;box-shadow:0 10px 22px rgba(0,119,255,.26);}
+.btn.vk:hover{background:#0062d6;border-color:#0062d6;color:#fff;}
+
 .startbar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-top:22px;border-top:2px solid var(--n200);}
 .btn.go{font-size:20px;line-height:24px;padding:17px 38px;min-height:62px;font-weight:900;letter-spacing:-.02em;}
 .startnote{font-size:16px;color:var(--ink2);font-weight:700;}

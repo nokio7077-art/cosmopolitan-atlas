@@ -700,6 +700,52 @@
     ]);
   }
 
+  /* --- режим игры и «поделиться» --- */
+  // Во время раунда шапка сайта прячется: на телефоне она занимала половину
+  // экрана, и до карты приходилось лишний раз пролистывать. Всё нужное —
+  // счёт, номер раунда и выход — есть в игровой строке.
+  function playMode(on) {
+    if (!document.body) return;
+    if (on) document.body.classList.add("playing");
+    else document.body.classList.remove("playing");
+  }
+
+  var SITE = "https://cosmopolitan-atlas.online/";
+  // Телеграм и ВК открываем обычными ссылками на их формы, без подключения
+  // чужих скриптов: и приватнее, и работает даже с блокировщиками.
+  function shareBlock(opts) {
+    opts = opts || {};
+    var url = opts.url || SITE, text = opts.text || "";
+    var tg = "https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text);
+    var vk = "https://vk.com/share.php?noparse=true&url=" + encodeURIComponent(url) +
+      "&title=" + encodeURIComponent(opts.title || "Cosmopolitan — атлас памяти") +
+      "&description=" + encodeURIComponent(text) +
+      "&image=" + encodeURIComponent(SITE + "favicon-512.png");
+
+    var note = el("span", { class: "sharenote" }, []);
+    var copy = el("button", { class: "btn ghost", type: "button", onclick: function () {
+      var full = text + "\n" + url;
+      function done(ok) { note.textContent = ok ? "Скопировано" : "Не вышло скопировать — выделите текст вручную."; }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(full).then(function () { done(true); }, function () { done(false); });
+      } else done(false);
+    } }, ["Скопировать"]);
+
+    var row = el("div", { class: "row" }, [
+      el("a", { class: "btn tg", href: tg, target: "_blank", rel: "noopener noreferrer" }, ["Telegram"]),
+      el("a", { class: "btn vk", href: vk, target: "_blank", rel: "noopener noreferrer" }, ["ВКонтакте"]),
+      copy
+    ]);
+    // На телефоне родное меню «Поделиться» удобнее любых кнопок — если оно есть,
+    // ставим его первым.
+    if (navigator.share) {
+      row.insertBefore(el("button", { class: "btn primary", type: "button", onclick: function () {
+        navigator.share({ title: opts.title || "Cosmopolitan", text: text, url: url }).catch(function () {});
+      } }, ["Поделиться"]), row.firstChild);
+    }
+    return el("div", { class: "sharebar" }, [kicker("Поделиться результатом"), row, note]);
+  }
+
   /* --- рейтинг --- */
   var sb = null;
   try {
@@ -799,7 +845,7 @@
   /* --- шапка, подвал, куки --- */
   var NAV = [
     ["index.html", "Главная"], ["play.html", "Играть"], ["flags.html", "Флаги"],
-    ["learn.html", "Карточки"], ["map.html", "Карта"], ["board.html", "Рейтинг"], ["stats.html", "Статистика"]
+    ["learn.html", "Карточки"], ["map.html", "Карта"], ["board.html", "Рейтинг"]
   ];
   var ICON_STAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="#1b1200"><path d="M12 2.6l2.7 5.9 6.3.7-4.7 4.3 1.3 6.3L12 16.6 6.4 19.8l1.3-6.3L3 9.2l6.3-.7z"/></svg>';
   function brandMark() {
@@ -829,7 +875,7 @@
           el("a", { class: "nav-ava", href: "settings.html", "aria-label": "Настройки игрока" }, [
             el("img", { src: "art/avatar.png", alt: "", width: "44", height: "44" })
           ]),
-          el("a", { class: "nav-score", href: "stats.html", title: "Лучший результат за сессию" }, [
+          el("a", { class: "nav-score", href: "settings.html", title: "Лучший результат за сессию" }, [
             el("span", { class: "st", html: ICON_STAR }),
             el("span", {}, [String(progress.highScore || 0)])
           ])
@@ -874,6 +920,7 @@
     project: project, insideCountry: insideCountry, nearCountry: nearCountry, insideAnyOther: insideAnyOther,
     mapSvg: mapSvg, zoomMap: zoomMap, locator: locator, closeView: closeView, regionIcon: regionIcon,
     countryAt: countryAt, placeName: placeName, distanceKm: distanceKm, formatKm: formatKm,
+    playMode: playMode, shareBlock: shareBlock,
     population: population, popText: popText, countryCard: countryCard, verdict: verdict,
     currentDisplayName: currentDisplayName, pickPersona: pickPersona,
     submitToLeaderboard: submitToLeaderboard, fetchLeaderboard: fetchLeaderboard, hasServer: !!sb,

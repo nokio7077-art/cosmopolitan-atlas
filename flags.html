@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://mc.yandex.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://examtwlpaeheturjkacc.supabase.co https://mc.yandex.ru">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-<link rel="icon" href="favicon.ico" sizes="32x32">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
 <link rel="icon" href="favicon-16.png" type="image/png" sizes="16x16">
+<link rel="icon" href="favicon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <link rel="canonical" href="https://cosmopolitan-atlas.online/flags.html">
@@ -36,6 +36,7 @@ CA.ready(function () {
   function render() {
     app.innerHTML = "";
     CA.mount(st.view === "regions" ? viewRegions() : st.view === "setup" ? viewSetup() : st.view === "round" ? viewRound() : viewEnd());
+    CA.playMode(st.view === "round");
     window.scrollTo(0, 0);
   }
   function start(size) {
@@ -147,15 +148,21 @@ CA.ready(function () {
   }
 
   function viewEnd() {
-    var pct = st.queue.length ? Math.round(100 * st.correct / st.queue.length) : 0;
+    var n = st.queue.length, pct = n ? Math.round(100 * st.correct / n) : 0;
+    var shareText = "Cosmopolitan Atlas 🌍 Флаги " + CA.regionName(st.region) + ": угадал " +
+      st.correct + " из " + n + " (" + pct + "%).\nА сколько узнаешь ты?";
     return el("div", { class: "screen" }, [
       k(CA.regionName(st.region) + " · раунд флагов завершён"),
-      el("div", { class: "num", style: "margin-top:14px" }, [st.correct + "/" + st.queue.length]),
-      el("p", { class: "lede", style: "margin:14px 0 26px" }, ["верных ответов · " + pct + "%"]),
-      el("div", { class: "row" }, [
-        el("button", { class: "btn primary", type: "button", onclick: function () { start(st.queue.length); } }, ["Играть ещё раз"]),
+      el("div", { class: "result", style: "margin-top:14px;max-width:520px" }, [
+        k(pct === 100 ? "Ни одной осечки" : "Результат", pct === 100 ? "sp" : null),
+        el("div", { class: "num" }, [st.correct + "/" + n]),
+        el("p", { class: "result-sub" }, ["верных ответов · " + pct + "%"])
+      ]),
+      el("div", { class: "row", style: "margin-top:22px" }, [
+        el("button", { class: "btn primary", type: "button", onclick: function () { start(n); } }, ["Играть ещё раз"]),
         el("button", { class: "btn ghost", type: "button", onclick: function () { st.view = "regions"; render(); } }, ["Другой регион"])
-      ])
+      ]),
+      CA.shareBlock({ text: shareText, title: "Мой результат в Cosmopolitan Atlas" })
     ]);
   }
 
