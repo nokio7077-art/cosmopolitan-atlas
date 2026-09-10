@@ -716,7 +716,7 @@
   // Текстом делиться скучно, поэтому рисуем открытку прямо в браузере: фон с
   // картой мира из наших же контуров, белая панель со счётом и разбивкой.
   // Ничего не грузим со стороны — только собственный значок сайта.
-  var CARD_W = 1080, CARD_H = 1350;
+  var CARD_W = 1024, CARD_H = 1536;
   function roundRect(g, x, y, w, h, r) {
     g.beginPath();
     g.moveTo(x + r, y);
@@ -726,85 +726,59 @@
     g.arcTo(x, y, x + w, y, r);
     g.closePath();
   }
-  function drawWorld(g) {
-    if (!PATHS) buildPaths();
-    g.save();
-    // карта 1000×500 растянута на всю открытку, с обрезкой по краям
-    g.translate(CARD_W / 2, CARD_H * 0.46);
-    var sc = CARD_W / 1000 * 1.55;
-    g.scale(sc, sc);
-    g.translate(-500, -250);
-    g.fillStyle = "rgba(255,255,255,.13)";
-    for (var iso in PATHS) {
-      try { g.fill(new Path2D(PATHS[iso])); } catch (e) { break; }
-    }
-    g.restore();
-  }
+  // Рисуем на присланной рамке: глобус с самолётом и облаками там уже есть, наше
+  // дело — вписать текст в белую панель. Если рамка не загрузилась, рисуем фон
+  // сами, чтобы открытка всё равно получилась.
   function resultImage(o, cb) {
     var c = document.createElement("canvas");
     c.width = CARD_W; c.height = CARD_H;
     var g = c.getContext("2d");
+    var frame = new Image();
+    frame.onload = function () { g.drawImage(frame, 0, 0, CARD_W, CARD_H); paint(); };
+    frame.onerror = function () { fallbackBg(); paint(); };
+    frame.src = "art/share-frame.webp";
 
-    var grad = g.createLinearGradient(0, 0, 0, CARD_H);
-    grad.addColorStop(0, "#2b7fff"); grad.addColorStop(1, "#1147b0");
-    g.fillStyle = grad; g.fillRect(0, 0, CARD_W, CARD_H);
-    drawWorld(g);
+    function fallbackBg() {
+      var grad = g.createLinearGradient(0, 0, 0, CARD_H);
+      grad.addColorStop(0, "#2b7fff"); grad.addColorStop(1, "#1147b0");
+      g.fillStyle = grad; g.fillRect(0, 0, CARD_W, CARD_H);
+      g.fillStyle = "#eef6ff";
+      roundRect(g, 74, 330, CARD_W - 148, 900, 46); g.fill();
+    }
 
-    var F = "Nunito, 'Segoe UI', system-ui, sans-serif";
-    g.textAlign = "center";
-    g.fillStyle = "#fff";
-    g.font = "900 52px " + F;
-    g.fillText("COSMOPOLITAN ATLAS", CARD_W / 2, 118);
-    g.font = "700 30px " + F;
-    g.fillStyle = "rgba(255,255,255,.72)";
-    g.fillText("столицы, флаги и карта мира", CARD_W / 2, 166);
-
-    var px = 80, py = 300, pw = CARD_W - px * 2, ph = 880;
-    g.save();
-    g.shadowColor = "rgba(6,32,80,.35)"; g.shadowBlur = 60; g.shadowOffsetY = 18;
-    g.fillStyle = "#fff";
-    roundRect(g, px, py, pw, ph, 56); g.fill();
-    g.restore();
-
-    var y = py + 108;
-    g.fillStyle = "#6a86a8"; g.font = "800 30px " + F;
-    g.fillText((o.badge || "результат сессии").toUpperCase(), CARD_W / 2, y);
-    y += 150;
-    g.fillStyle = "#2b7fff"; g.font = "900 168px " + F;
-    g.fillText(String(o.score), CARD_W / 2, y);
-    y += 62;
-    g.fillStyle = "#0f2f5e"; g.font = "800 38px " + F;
-    g.fillText(o.sub || "", CARD_W / 2, y);
-
-    y += 84;
-    (o.rows || []).forEach(function (row) {
-      g.strokeStyle = "#e3edfa"; g.lineWidth = 3;
-      g.beginPath(); g.moveTo(px + 74, y + 26); g.lineTo(px + pw - 74, y + 26); g.stroke();
-      g.textAlign = "left"; g.fillStyle = "#3a5a86"; g.font = "700 40px " + F;
-      g.fillText(row[0], px + 74, y);
-      g.textAlign = "right"; g.fillStyle = "#0f2f5e"; g.font = "900 40px " + F;
-      g.fillText(row[1], px + pw - 74, y);
+    function paint() {
+      var F = "Nunito, 'Segoe UI', system-ui, sans-serif";
+      // Границы белой панели измерены по самой рамке: свободное поле под
+      // глобусом начинается на 472-й точке и идёт до волны внизу, по бокам
+      // панель от 91 до 932. Держимся внутри с отступом.
+      var px = 132, pw = CARD_W - px * 2, mid = CARD_W / 2;
       g.textAlign = "center";
-      y += 82;
-    });
 
-    g.fillStyle = "#6a86a8"; g.font = "800 34px " + F;
-    g.fillText("cosmopolitan-atlas.online", CARD_W / 2, py + ph - 54);
+      var y = 560;
+      g.fillStyle = "#6a86a8"; g.font = "800 27px " + F;
+      g.fillText((o.badge || "результат сессии").toUpperCase(), mid, y);
+      y += 142;
+      g.fillStyle = "#1a63d8"; g.font = "900 152px " + F;
+      g.fillText(String(o.score), mid, y);
+      y += 58;
+      g.fillStyle = "#0f2f5e"; g.font = "800 34px " + F;
+      g.fillText(o.sub || "", mid, y);
 
-    // Значок сайта садится на верхний край панели — как медаль на карточке.
-    var img = new Image();
-    img.onload = function () { finish(img); };
-    img.onerror = function () { finish(null); };
-    img.src = "favicon-192.png";
+      y += 96;
+      (o.rows || []).forEach(function (row) {
+        g.strokeStyle = "rgba(15,47,94,.12)"; g.lineWidth = 2;
+        g.beginPath(); g.moveTo(px, y + 22); g.lineTo(px + pw, y + 22); g.stroke();
+        g.textAlign = "left"; g.fillStyle = "#3a5a86"; g.font = "700 34px " + F;
+        g.fillText(row[0], px, y);
+        g.textAlign = "right"; g.fillStyle = "#0f2f5e"; g.font = "900 34px " + F;
+        g.fillText(row[1], px + pw, y);
+        g.textAlign = "center";
+        y += 76;
+      });
 
-    function finish(icon) {
-      if (icon) {
-        var s = 190;
-        g.save();
-        g.shadowColor = "rgba(6,32,80,.3)"; g.shadowBlur = 34; g.shadowOffsetY = 10;
-        g.drawImage(icon, (CARD_W - s) / 2, py - s / 2 - 14, s, s);
-        g.restore();
-      }
+      g.fillStyle = "#4d6b91"; g.font = "800 30px " + F;
+      g.fillText("cosmopolitan-atlas.online", mid, 1218);
+
       c.toBlob(function (blob) { cb(blob, c.toDataURL("image/png")); }, "image/png");
     }
   }
@@ -851,10 +825,16 @@
     }
     var saveBtn = el("button", { class: "btn ghost", type: "button", onclick: saveCard }, ["Сохранить картинку"]);
 
+    // Логотипы Телеграма и ВК узнаются без подписей, а места занимают втрое меньше.
+    function socialBtn(href, icon, name) {
+      return el("a", { class: "btn social", href: href, target: "_blank", rel: "noopener noreferrer", title: name, "aria-label": name }, [
+        el("img", { src: "art/" + icon + ".webp", alt: "", width: "30", height: "30", loading: "lazy" })
+      ]);
+    }
     wrap.appendChild(el("div", { class: "row" }, [
       shareBtn,
-      el("a", { class: "btn tg", href: tg, target: "_blank", rel: "noopener noreferrer" }, ["Telegram"]),
-      el("a", { class: "btn vk", href: vk, target: "_blank", rel: "noopener noreferrer" }, ["ВКонтакте"]),
+      socialBtn(tg, "tg", "Поделиться в Telegram"),
+      socialBtn(vk, "vk", "Поделиться во ВКонтакте"),
       saveBtn
     ]));
     wrap.appendChild(note);
@@ -973,7 +953,7 @@
   ];
   var ICON_STAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="#1b1200"><path d="M12 2.6l2.7 5.9 6.3.7-4.7 4.3 1.3 6.3L12 16.6 6.4 19.8l1.3-6.3L3 9.2l6.3-.7z"/></svg>';
   function brandMark() {
-    return el("img", { class: "mark", src: "art/globe.png", alt: "", width: "44", height: "44" });
+    return el("img", { class: "mark", src: "art/globe.webp", alt: "", width: "44", height: "44" });
   }
   // Значки регионов — рисованные, лежат в art/.
   var REGION_ART = {
@@ -982,7 +962,7 @@
   };
   function regionIcon(key, size) {
     return el("img", {
-      class: "ricon", src: "art/" + (REGION_ART[key] || "globe") + ".png", alt: "",
+      class: "ricon", src: "art/" + (REGION_ART[key] || "globe") + ".webp", alt: "",
       loading: "lazy", decoding: "async", style: size ? "width:" + size + "px;height:" + size + "px" : null
     });
   }
@@ -997,7 +977,7 @@
         links,
         el("div", { class: "nav-right" }, [
           el("a", { class: "nav-ava", href: "settings.html", "aria-label": "Настройки игрока" }, [
-            el("img", { src: "art/avatar.png", alt: "", width: "44", height: "44" })
+            el("img", { src: "art/avatar.webp", alt: "", width: "44", height: "44" })
           ]),
           el("a", { class: "nav-score", href: "settings.html", title: "Лучший результат за сессию" }, [
             el("span", { class: "st", html: ICON_STAR }),

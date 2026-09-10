@@ -100,10 +100,11 @@ body.playing .screen{padding-top:12px;}
 .btn.iconbtn{width:56px;padding:0;display:grid;place-items:center;}
 .btn.iconbtn svg{display:block;}
 .sharecard{display:block;width:100%;max-width:320px;margin-top:18px;border-radius:18px;box-shadow:var(--sh-md);}
-.btn.tg{background:#2aabee;border-color:#2aabee;color:#fff;box-shadow:0 10px 22px rgba(42,171,238,.28);}
-.btn.tg:hover{background:#1c93d2;border-color:#1c93d2;color:#fff;}
-.btn.vk{background:#0077ff;border-color:#0077ff;color:#fff;box-shadow:0 10px 22px rgba(0,119,255,.26);}
-.btn.vk:hover{background:#0062d6;border-color:#0062d6;color:#fff;}
+/* Кнопки соцсетей — только логотип: подписи «Telegram» и «ВКонтакте» ничего
+   не добавляли, а места занимали втрое больше. */
+.btn.social{width:56px;padding:0;display:grid;place-items:center;border-color:var(--n300);background:#fff;}
+.btn.social img{display:block;width:30px;height:30px;}
+.btn.social:hover{border-color:var(--blue);}
 
 .startbar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-top:22px;border-top:2px solid var(--n200);}
 .btn.go{font-size:20px;line-height:24px;padding:17px 38px;min-height:62px;font-weight:900;letter-spacing:-.02em;}
