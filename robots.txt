@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /settings.html
 Disallow: /stats.html
+Disallow: /maintenance.html
 
 Sitemap: https://cosmopolitan-atlas.online/sitemap.xml

@@ -339,9 +339,42 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
   .lostbox{display:flex;align-items:center;gap:clamp(20px,3vw,44px);
     background:linear-gradient(180deg,#4ca0ed 0%,#aad8fc 100%);
     padding:0 max(clamp(18px,4vw,40px),calc((100% - 1240px) / 2));}
+  .pausepage .lostbox{background:linear-gradient(180deg,#58acf0 0%,#a6d9fc 100%);}
   .lostbox .lost-art{order:-1;flex:1 1 54%;background:none;min-width:0;}
   .lostbox .lost-art img{max-width:620px;margin:0;}
   .lostbox .lost{flex:1 1 46%;background:none;text-align:left;padding:30px 0;min-width:0;}
   .lostbox .lost h1,.lostbox .lost .sub{margin-left:0;margin-right:0;}
   .lostbox .lost .row{justify-content:flex-start;padding-bottom:0;}
 }
+
+/* Страница «технические шоколадки» — тот же синий разворот, что и у 404, но в
+   один столбец: тут нечего разглядывать, только прочитать и уйти. */
+/* Шапки и подвала на этой странице нет — вытягиваем разворот на весь экран,
+   иначе снизу оставалась бы светлая полоса. Оттенки взяты замером крайних
+   рядов art/pause.webp: у неё свой градиент, посветлее, чем у картинки 404,
+   и с общим фоном она обязана сходиться, иначе вокруг неё видна рамка. */
+.pausepage main{display:flex;background:#a6d9fc;}
+.pausepage .lostbox{flex:1;}
+/* Столбиком у каждого блока свой отрезок градиента; в два столбца фон даёт
+   уже контейнер, поэтому здесь эти правила нужно погасить — иначе колонки
+   проступают цветными прямоугольниками. */
+@media (max-width:899px){
+  .pausepage .lost{background:linear-gradient(180deg,#3f95e9 0%,#58acf0 100%);}
+  .pausepage .lost-art{background:linear-gradient(180deg,#58acf0 0%,#a6d9fc 100%);}
+}
+@media (min-width:900px){
+  .pausepage .lost,.pausepage .lost-art{background:none;}
+}
+/* На светлом низу градиента белый текст теряется — добавляем ему плотности. */
+.pausepage .lost .sub{color:#fff;text-shadow:0 2px 12px rgba(9,54,120,.28);}
+.pausepage .lost h1,.pausepage .lost-num{text-shadow:0 4px 18px rgba(9,54,120,.3);}
+.pausepage .lost h1{font-size:clamp(23px,3.6vw,38px);max-width:19ch;}
+.pause-mail{font-size:15px;line-height:24px;font-weight:700;color:#fff;margin:16px 0 0;
+  text-shadow:0 2px 12px rgba(9,54,120,.28);}
+.pause-mail a{color:#fff;text-decoration:underline;text-underline-offset:3px;}
+.pause-mail a:hover{color:var(--gold);}
+/* Кнопка белым по синему. На золотом фоне белые буквы дают контраст 1,6:1 —
+   это нечитаемо; фирменный синий с белым даёт 5,5:1. */
+.pausepage .btn.primary{background:var(--blue-d);border-color:var(--blue-d);color:#fff;
+  box-shadow:0 10px 24px rgba(15,47,94,.28);}
+.pausepage .btn.primary:hover{background:var(--ink);border-color:var(--ink);color:#fff;}
