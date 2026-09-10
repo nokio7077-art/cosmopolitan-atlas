@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://mc.yandex.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://examtwlpaeheturjkacc.supabase.co https://mc.yandex.ru">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-<link rel="icon" href="favicon.ico" sizes="32x32">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
 <link rel="icon" href="favicon-16.png" type="image/png" sizes="16x16">
+<link rel="icon" href="favicon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <link rel="canonical" href="https://cosmopolitan-atlas.online/play.html">
@@ -40,7 +40,7 @@ CA.ready(function () {
   var st = {
     view: "regions", region: null, queue: [], i: 0, round: null,
     score: 0, combo: 0, mistakes: {}, capital: "", submitted: false, sending: false, submitMsg: null,
-    difficulty: "easy", sizeKey: "10"
+    difficulty: "easy", sizeKey: "10", tally: { cap: 0, flag: 0, map: 0, clean: 0 }
   };
 
   function render() {
@@ -50,6 +50,7 @@ CA.ready(function () {
       : st.view === "round" ? viewRound()
       : viewEnd();
     CA.mount(node);
+    CA.playMode(st.view === "round");
     // Пока идёт игра, храним снимок: с карточки страны человек должен вернуться
     // ровно туда, где остановился, а не в начало.
     if (st.view === "round" || st.view === "end") saveGame();
@@ -61,7 +62,7 @@ CA.ready(function () {
     CA.saveSession({
       v: 1, region: st.region, queue: st.queue.map(function (c) { return c.f; }), i: st.i,
       score: st.score, combo: st.combo, mistakes: st.mistakes, capital: st.capital,
-      difficulty: st.difficulty, sizeKey: st.sizeKey, view: st.view,
+      difficulty: st.difficulty, sizeKey: st.sizeKey, view: st.view, tally: st.tally,
       submitted: st.submitted, submitMsg: st.submitMsg,
       round: r ? {
         iso: r.c.f, step: r.step, capOk: r.capOk, capDone: r.capDone, hint: r.hint,
@@ -82,6 +83,7 @@ CA.ready(function () {
     st.score = s.score || 0; st.combo = s.combo || 0; st.mistakes = s.mistakes || {};
     st.capital = s.capital || ""; st.difficulty = s.difficulty || "easy";
     st.sizeKey = s.sizeKey || "10"; st.submitted = !!s.submitted; st.submitMsg = s.submitMsg || null;
+    st.tally = s.tally || { cap: 0, flag: 0, map: 0, clean: 0 };
     st.view = s.view === "end" ? "end" : "round";
     if (s.round) {
       var c = CA.byIso(s.round.iso) || st.queue[st.i];
@@ -121,6 +123,7 @@ CA.ready(function () {
     st.region = regionKey;
     st.queue = forced ? forced : CA.shuffle(list).slice(0, Math.min(size || list.length, list.length));
     st.i = 0; st.score = 0; st.combo = 0; st.mistakes = {}; st.capital = "";
+    st.tally = { cap: 0, flag: 0, map: 0, clean: 0 };
     st.submitted = false; st.sending = false; st.submitMsg = null;
     st.round = newRound(st.queue[0]); st.view = "round"; render();
   }
@@ -404,6 +407,10 @@ CA.ready(function () {
     var r = st.round;
     var raw = (r.capOk ? 10 : 0) + (r.flagOk ? 10 : 0) + (r.mapOk ? 10 : 0);
     var clean = r.capOk && r.flagOk && r.mapOk;
+    if (r.capOk) st.tally.cap++;
+    if (r.flagOk) st.tally.flag++;
+    if (r.mapOk) st.tally.map++;
+    if (clean) st.tally.clean++;
     st.combo = clean ? st.combo + 1 : 0;
     r.mult = st.combo >= 3 ? 1.5 : 1;
     r.points = Math.round(raw * r.mult);
@@ -500,16 +507,39 @@ CA.ready(function () {
       ]));
     }
 
+    var n = st.queue.length, t = st.tally;
+    var record = st.score >= (CA.progress.highScore || 0) && st.score > 0;
+    var card = el("div", { class: "result" }, [
+      k(record ? "Личный рекорд" : "Результат сессии", record ? "sp" : null),
+      el("div", { class: "num" }, [String(st.score)]),
+      el("p", { class: "result-sub" }, [
+        "очков · " + CA.regionName(st.region) + " · " + n + " " + countryWord(n) +
+        (record ? "" : " · рекорд " + (CA.progress.highScore || 0))
+      ]),
+      el("div", { class: "result-rows" }, [
+        el("div", {}, [el("span", {}, ["Столицы"]), el("b", {}, [t.cap + " / " + n])]),
+        el("div", {}, [el("span", {}, ["Флаги"]), el("b", {}, [t.flag + " / " + n])]),
+        el("div", {}, [el("span", {}, ["На карте"]), el("b", {}, [t.map + " / " + n])]),
+        el("div", {}, [el("span", {}, ["Без ошибок"]), el("b", {}, [t.clean + " / " + n])])
+      ])
+    ]);
+
+    // Текст для друзей: короткий, с разбивкой по шагам и без ссылки внутри —
+    // ссылку Телеграм и ВК подставляют сами, отдельным полем.
+    var shareText = "Cosmopolitan Atlas 🌍 " + CA.regionName(st.region) + ", " + n + " " + countryWord(n) +
+      " — " + st.score + " очков.\nСтолицы " + t.cap + "/" + n + " · флаги " + t.flag + "/" + n +
+      " · на карте " + t.map + "/" + n + ".\nА сколько наберёшь ты?";
+
     return el("div", { class: "screen" }, [
-      k(CA.regionName(st.region) + " · " + st.queue.length + " стран · сессия завершена"),
+      k(CA.regionName(st.region) + " · " + n + " " + countryWord(n) + " · сессия завершена"),
       el("div", { class: "grid two", style: "margin-top:14px;align-items:start" }, [
         el("div", {}, [
-          el("div", { class: "num" }, [String(st.score)]),
-          el("p", { class: "lede", style: "margin:14px 0 26px" }, ["очков за сессию. Личный рекорд — " + (CA.progress.highScore || 0) + "."]),
-          el("div", { class: "row" }, [
+          card,
+          el("div", { class: "row", style: "margin-top:22px" }, [
             el("button", { class: "btn primary", type: "button", onclick: function () { start(st.region, st.queue.length); } }, ["Играть ещё раз"]),
             el("button", { class: "btn ghost", type: "button", onclick: function () { st.view = "regions"; render(); } }, ["Другой регион"])
           ]),
+          CA.shareBlock({ text: shareText, title: "Мой результат в Cosmopolitan Atlas" }),
           sendWrap
         ]),
         right

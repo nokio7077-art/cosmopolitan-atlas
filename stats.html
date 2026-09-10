@@ -5,24 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://mc.yandex.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://examtwlpaeheturjkacc.supabase.co https://mc.yandex.ru">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-<link rel="icon" href="favicon.ico" sizes="32x32">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
 <link rel="icon" href="favicon-16.png" type="image/png" sizes="16x16">
+<link rel="icon" href="favicon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="robots" content="noindex, follow">
-<link rel="canonical" href="https://cosmopolitan-atlas.online/stats.html">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Cosmopolitan — атлас памяти">
-<meta property="og:locale" content="ru_RU">
-<meta property="og:title" content="Моя статистика: изученные страны и рекорды | Cosmopolitan">
-<meta property="og:description" content="Личная статистика тренажёра: сколько стран изучено, где чаще ошибки — в столицах, флагах или на карте, и какой рекорд за сессию.">
-<meta property="og:url" content="https://cosmopolitan-atlas.online/stats.html">
-<meta property="og:image" content="https://cosmopolitan-atlas.online/favicon-512.png">
-<meta name="twitter:card" content="summary">
-<title>Моя статистика: изученные страны и рекорды | Cosmopolitan</title>
-<meta name="description" content="Личная статистика тренажёра: сколько стран изучено, где чаще ошибки — в столицах, флагах или на карте, и какой рекорд за сессию.">
+<link rel="canonical" href="https://cosmopolitan-atlas.online/settings.html">
+<meta http-equiv="refresh" content="0; url=settings.html">
+<title>Статистика переехала в профиль | Cosmopolitan</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -30,52 +22,15 @@
 <script src="data.js"></script>
 <script src="core.js"></script>
 <script>
+// Страница статистики слилась с настройками: прогресс и титул теперь на одной
+// странице профиля. Адрес оставлен, чтобы старые ссылки и закладки не ломались.
+location.replace("settings.html");
 CA.ready(function () {
-  var el = CA.el, k = CA.kicker, p = CA.progress;
-
-  var hard = Object.keys(p.perCountry).map(function (iso) {
-    var e = p.perCountry[iso], c = CA.byIso(iso);
-    return { iso: iso, n: c ? c.n : iso, total: e.mistakes.capital + e.mistakes.flag + e.mistakes.map };
-  }).filter(function (x) { return x.total > 0; }).sort(function (a, b) { return b.total - a.total; }).slice(0, 8);
-
-  var right = el("div", {}, [el("h2", { style: "font-size:30px;line-height:34px;margin-bottom:18px" }, ["Пока сопротивляются"])]);
-  if (hard.length) {
-    right.appendChild(el("div", { class: "list" }, hard.map(function (x) {
-      var word = x.total === 1 ? " ошибка" : (x.total < 5 ? " ошибки" : " ошибок");
-      return el("a", { class: "li clickable", href: "country.html?iso=" + x.iso }, [
-        el("span", {}, [x.n]), el("span", { class: "bad" }, [x.total + word])
-      ]);
-    })));
-  } else {
-    right.appendChild(el("p", { style: "margin:0;font-size:16px;color:var(--n800)" }, ["Пока пусто — сыграйте раунд, и здесь появятся страны, которые чаще всего ускользают."]));
-    right.appendChild(el("div", { style: "margin-top:20px" }, [el("a", { class: "btn primary", href: "play.html" }, ["Играть"])]));
-  }
-
+  var el = CA.el;
   CA.mount(el("div", { class: "screen" }, [
-    el("h1", { class: "big", style: "font-size:clamp(32px,4.5vw,48px);margin-bottom:28px" }, ["Ваш прогресс"]),
-    el("div", { style: "display:flex;gap:clamp(32px,7vw,96px);flex-wrap:wrap;margin-bottom:52px" }, [
-      el("div", { class: "stat" }, [el("b", {}, [String(CA.studiedCount("world"))]), k("стран изучено")]),
-      el("div", { class: "stat" }, [el("b", {}, [String(p.highScore || 0)]), k("рекорд сессии")]),
-      el("div", { class: "stat" }, [el("b", {}, [String(p.totalRounds || 0)]), k("раундов сыграно")])
-    ]),
-    el("div", { class: "grid two", style: "align-items:start" }, [
-      el("div", {}, [
-        el("h2", { style: "font-size:30px;line-height:34px;margin-bottom:18px" }, ["По регионам"]),
-        el("div", { style: "display:flex;flex-direction:column;gap:18px" }, ["world"].concat(CA.REGION_ORDER).map(function (key) {
-          var list = CA.regionCountries(key), done = CA.studiedCount(key);
-          return el("div", { style: "display:flex;align-items:center;gap:14px" }, [
-            CA.regionIcon(key),
-            el("div", { style: "flex:1;min-width:0" }, [
-              el("div", { style: "display:flex;justify-content:space-between;gap:12px" }, [
-                el("span", {}, [CA.regionName(key)]), el("span", {}, [done + "/" + list.length])
-              ]),
-              CA.bar(Math.round(100 * done / Math.max(1, list.length)))
-            ])
-          ]);
-        }))
-      ]),
-      right
-    ])
+    el("h1", { class: "big", style: "font-size:clamp(28px,4vw,40px);margin-bottom:14px" }, ["Статистика переехала в профиль"]),
+    el("p", { class: "lede", style: "margin:0 0 24px" }, ["Прогресс, регионы и трудные страны теперь на одной странице с титулом и кодом игрока."]),
+    el("a", { class: "btn primary", href: "settings.html" }, ["Открыть профиль"])
   ]));
 });
 </script>

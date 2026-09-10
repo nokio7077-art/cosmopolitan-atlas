@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://mc.yandex.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://examtwlpaeheturjkacc.supabase.co https://mc.yandex.ru">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-<link rel="icon" href="favicon.ico" sizes="32x32">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
 <link rel="icon" href="favicon-16.png" type="image/png" sizes="16x16">
+<link rel="icon" href="favicon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="robots" content="noindex, follow">
@@ -16,12 +16,12 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Cosmopolitan — атлас памяти">
 <meta property="og:locale" content="ru_RU">
-<meta property="og:title" content="Настройки: титул в рейтинге и код игрока | Cosmopolitan">
+<meta property="og:title" content="Профиль: титул в рейтинге и код игрока | Cosmopolitan">
 <meta property="og:description" content="Выбор титула для рейтинга недели, код игрока для возврата номера после очистки браузера и сброс игрового прогресса.">
 <meta property="og:url" content="https://cosmopolitan-atlas.online/settings.html">
 <meta property="og:image" content="https://cosmopolitan-atlas.online/favicon-512.png">
 <meta name="twitter:card" content="summary">
-<title>Настройки: титул в рейтинге и код игрока | Cosmopolitan</title>
+<title>Профиль: титул в рейтинге и код игрока | Cosmopolitan</title>
 <meta name="description" content="Выбор титула для рейтинга недели, код игрока для возврата номера после очистки браузера и сброс игрового прогресса.">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js" integrity="sha384-CLZeq1dk8+Uzrs7TVvBUdlFoV5F0DMqgRoeHa8g5wJcuPe5SkVfEvdxB0ZuzlnBQ" crossorigin="anonymous"></script>
@@ -74,6 +74,52 @@ CA.ready(function () {
     render();
   }
 
+  // Отдельной страницы статистики больше нет: прогресс живёт здесь же, в профиле,
+  // сразу над титулом и кодом игрока.
+  function statsBlock() {
+    var hard = Object.keys(p.perCountry).map(function (iso) {
+      var e = p.perCountry[iso], c = CA.byIso(iso);
+      return { iso: iso, n: c ? c.n : iso, total: e.mistakes.capital + e.mistakes.flag + e.mistakes.map };
+    }).filter(function (x) { return x.total > 0; }).sort(function (a, b) { return b.total - a.total; }).slice(0, 8);
+
+    var hardBox = el("div", { style: "margin-top:12px" });
+    if (hard.length) {
+      hardBox.appendChild(el("div", { class: "list" }, hard.map(function (x) {
+        var word = x.total === 1 ? " ошибка" : (x.total < 5 ? " ошибки" : " ошибок");
+        return el("a", { class: "li clickable", href: "country.html?iso=" + x.iso }, [
+          el("span", {}, [x.n]), el("span", { class: "bad" }, [x.total + word])
+        ]);
+      })));
+    } else {
+      hardBox.appendChild(el("p", { style: "margin:0;font-size:16px;color:var(--ink2)" }, [
+        "Пока пусто — сыграйте раунд, и здесь появятся страны, которые чаще всего ускользают."
+      ]));
+    }
+
+    return el("div", {}, [
+      el("div", { style: "display:flex;gap:clamp(28px,6vw,72px);flex-wrap:wrap;margin:6px 0 40px" }, [
+        el("div", { class: "stat" }, [el("b", {}, [String(CA.studiedCount("world"))]), k("стран изучено")]),
+        el("div", { class: "stat" }, [el("b", {}, [String(p.highScore || 0)]), k("рекорд сессии")]),
+        el("div", { class: "stat" }, [el("b", {}, [String(p.totalRounds || 0)]), k("раундов сыграно")])
+      ]),
+      k("По регионам"),
+      el("div", { style: "display:flex;flex-direction:column;gap:16px;margin-top:14px" }, ["world"].concat(CA.REGION_ORDER).map(function (key) {
+        var list = CA.regionCountries(key), done = CA.studiedCount(key);
+        return el("div", { style: "display:flex;align-items:center;gap:14px" }, [
+          CA.regionIcon(key),
+          el("div", { style: "flex:1;min-width:0" }, [
+            el("div", { style: "display:flex;justify-content:space-between;gap:12px" }, [
+              el("span", {}, [CA.regionName(key)]), el("span", {}, [done + "/" + list.length])
+            ]),
+            CA.bar(Math.round(100 * done / Math.max(1, list.length)))
+          ])
+        ]);
+      })),
+      el("div", { style: "margin-top:40px" }, [k("Пока сопротивляются")]),
+      hardBox
+    ]);
+  }
+
   function render() {
     app.innerHTML = "";
     var me = CA.currentDisplayName();
@@ -93,12 +139,14 @@ CA.ready(function () {
       }));
 
     CA.mount(el("div", { class: "screen", style: "max-width:760px" }, [
-      el("h1", { class: "big", style: "font-size:clamp(30px,4vw,44px);margin-bottom:14px" }, ["Настройки"]),
-      el("p", { class: "lede", style: "margin:0 0 32px" }, ["Прогресс хранится только в этом браузере. Для рейтинга недели нужен титул — номер к нему присвоится сам, а код игрока вернёт его, если браузер очистят."]),
+      el("h1", { class: "big", style: "font-size:clamp(30px,4vw,44px);margin-bottom:14px" }, ["Профиль"]),
+      el("p", { class: "lede", style: "margin:0 0 32px" }, ["Ваш прогресс и настройки в одном месте. Всё хранится только в этом браузере: для рейтинга недели нужен титул, а код игрока вернёт номер, если браузер очистят."]),
 
-      k("Титул в рейтинге"),
-      el("p", { style: "margin:8px 0 0;font-size:16px;color:var(--n800)" }, me
-        ? ["Сейчас вы — ", el("b", { style: "font-weight:600" }, [me]), ". Номер закреплён навсегда, титул можно менять."]
+      statsBlock(),
+
+      el("div", { style: "margin-top:48px" }, [k("Титул в рейтинге")]),
+      el("p", { style: "margin:8px 0 0;font-size:16px;color:var(--ink2)" }, me
+        ? ["Сейчас вы — ", el("b", { style: "font-weight:800" }, [me]), ". Номер закреплён навсегда, титул можно менять."]
         : ["Выберите титул — номер присвоится сам, по порядку регистрации, и останется с вами навсегда."]),
       msg ? el("p", { class: "bad", style: "margin:8px 0 0;font-size:16px" }, [msg]) : null,
       titles,
@@ -107,20 +155,14 @@ CA.ready(function () {
       codeBlock(),
 
       el("div", { style: "margin-top:44px" }, [k("Данные")]),
-      el("div", { class: "list", style: "margin-top:12px" }, [
-        el("div", { class: "li" }, [el("span", {}, ["Изучено стран"]), el("span", {}, [String(CA.studiedCount("world"))])]),
-        el("div", { class: "li" }, [el("span", {}, ["Рекорд сессии"]), el("span", {}, [String(p.highScore || 0)])]),
-        el("div", { class: "li" }, [el("span", {}, ["Раундов сыграно"]), el("span", {}, [String(p.totalRounds || 0)])]),
-        CA.premiumEnabled ? el("div", { class: "li" }, [el("span", {}, ["Подсказки"]), el("span", {}, [String(p.hints || 0)])]) : null
-      ]),
-      el("div", { style: "margin-top:26px" }, [
+      el("div", { style: "margin-top:16px" }, [
         el("button", { class: "btn", type: "button", onclick: function () {
           if (!confirm("Сбросить весь прогресс? Титул и номер останутся.")) return;
           p.perCountry = {}; p.highScore = 0; p.totalRounds = 0; p.premium = false; p.hints = 0;
           CA.saveProgress(); render();
         } }, ["Сбросить прогресс"])
       ]),
-      el("p", { style: "margin-top:32px;font-size:15px;line-height:25px;color:var(--n700)" }, [
+      el("p", { style: "margin-top:32px;font-size:15px;line-height:25px;color:var(--ink3)" }, [
         "Что именно хранится и зачем — на странице ", el("a", { href: "privacy.html" }, ["политики конфиденциальности"]), "."
       ])
     ]));
