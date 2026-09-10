@@ -539,7 +539,20 @@ CA.ready(function () {
             el("button", { class: "btn primary", type: "button", onclick: function () { start(st.region, st.queue.length); } }, ["Играть ещё раз"]),
             el("button", { class: "btn ghost", type: "button", onclick: function () { st.view = "regions"; render(); } }, ["Другой регион"])
           ]),
-          CA.shareBlock({ text: shareText, title: "Мой результат в Cosmopolitan Atlas" }),
+          CA.shareBlock({
+            text: shareText, title: "Мой результат в Cosmopolitan Atlas",
+            card: {
+              badge: record ? "личный рекорд" : "результат сессии",
+              score: st.score,
+              sub: "очков · " + CA.regionName(st.region) + " · " + n + " " + countryWord(n),
+              rows: [
+                ["Столицы", t.cap + " / " + n],
+                ["Флаги", t.flag + " / " + n],
+                ["На карте", t.map + " / " + n],
+                ["Без ошибок", t.clean + " / " + n]
+              ]
+            }
+          }),
           sendWrap
         ]),
         right
