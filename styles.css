@@ -71,9 +71,21 @@ main{flex:1;}
 .btn:disabled{opacity:.45;cursor:default;box-shadow:none;}
 .row{display:flex;gap:14px;flex-wrap:wrap;}
 /* Полоса запуска: крупная кнопка и строка о том, что именно сейчас начнётся. */
-/* Во время раунда шапка и подвал не нужны: место на телефоне дороже. */
-body.playing .nav, body.playing .site-footer{display:none;}
-body.playing .screen{padding-top:10px;}
+/* Во время раунда шапка ужимается до логотипа, счёта и аватара: убирать её
+   целиком оказалось пусто, а два ряда ссылок на телефоне съедали пол-экрана. */
+body.playing .nav .wrap{min-height:54px;gap:14px;padding-top:6px;padding-bottom:6px;}
+body.playing .navlinks{display:none;}
+body.playing .nav-brand{font-size:19px;gap:9px;}
+body.playing .nav-brand .mark{width:34px;height:34px;}
+body.playing .nav-ava{width:36px;height:36px;}
+body.playing .nav-score{font-size:15px;padding:7px 15px 7px 8px;}
+body.playing .nav-score .st{width:22px;height:22px;}
+body.playing .site-footer{display:none;}
+body.playing .screen{padding-top:12px;}
+@media (max-width:560px){
+  /* на узком экране от названия остаётся только глобус — строка не переносится */
+  body.playing .nav-brand{font-size:0;}
+}
 
 /* Карточка результата и кнопки «поделиться». */
 .result{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh-md);padding:clamp(20px,3vw,30px);}
@@ -85,6 +97,9 @@ body.playing .screen{padding-top:10px;}
 .sharebar{margin-top:24px;}
 .sharebar .row{margin-top:10px;}
 .sharenote{display:block;margin-top:10px;font-size:15px;color:var(--ink2);font-weight:700;}
+.btn.iconbtn{width:56px;padding:0;display:grid;place-items:center;}
+.btn.iconbtn svg{display:block;}
+.sharecard{display:block;width:100%;max-width:320px;margin-top:18px;border-radius:18px;box-shadow:var(--sh-md);}
 .btn.tg{background:#2aabee;border-color:#2aabee;color:#fff;box-shadow:0 10px 22px rgba(42,171,238,.28);}
 .btn.tg:hover{background:#1c93d2;border-color:#1c93d2;color:#fff;}
 .btn.vk{background:#0077ff;border-color:#0077ff;color:#fff;box-shadow:0 10px 22px rgba(0,119,255,.26);}

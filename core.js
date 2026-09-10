@@ -711,6 +711,108 @@
   }
 
   var SITE = "https://cosmopolitan-atlas.online/";
+
+  /* --- картинка результата --- */
+  // Текстом делиться скучно, поэтому рисуем открытку прямо в браузере: фон с
+  // картой мира из наших же контуров, белая панель со счётом и разбивкой.
+  // Ничего не грузим со стороны — только собственный значок сайта.
+  var CARD_W = 1080, CARD_H = 1350;
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  }
+  function drawWorld(g) {
+    if (!PATHS) buildPaths();
+    g.save();
+    // карта 1000×500 растянута на всю открытку, с обрезкой по краям
+    g.translate(CARD_W / 2, CARD_H * 0.46);
+    var sc = CARD_W / 1000 * 1.55;
+    g.scale(sc, sc);
+    g.translate(-500, -250);
+    g.fillStyle = "rgba(255,255,255,.13)";
+    for (var iso in PATHS) {
+      try { g.fill(new Path2D(PATHS[iso])); } catch (e) { break; }
+    }
+    g.restore();
+  }
+  function resultImage(o, cb) {
+    var c = document.createElement("canvas");
+    c.width = CARD_W; c.height = CARD_H;
+    var g = c.getContext("2d");
+
+    var grad = g.createLinearGradient(0, 0, 0, CARD_H);
+    grad.addColorStop(0, "#2b7fff"); grad.addColorStop(1, "#1147b0");
+    g.fillStyle = grad; g.fillRect(0, 0, CARD_W, CARD_H);
+    drawWorld(g);
+
+    var F = "Nunito, 'Segoe UI', system-ui, sans-serif";
+    g.textAlign = "center";
+    g.fillStyle = "#fff";
+    g.font = "900 52px " + F;
+    g.fillText("COSMOPOLITAN ATLAS", CARD_W / 2, 118);
+    g.font = "700 30px " + F;
+    g.fillStyle = "rgba(255,255,255,.72)";
+    g.fillText("столицы, флаги и карта мира", CARD_W / 2, 166);
+
+    var px = 80, py = 300, pw = CARD_W - px * 2, ph = 880;
+    g.save();
+    g.shadowColor = "rgba(6,32,80,.35)"; g.shadowBlur = 60; g.shadowOffsetY = 18;
+    g.fillStyle = "#fff";
+    roundRect(g, px, py, pw, ph, 56); g.fill();
+    g.restore();
+
+    var y = py + 108;
+    g.fillStyle = "#6a86a8"; g.font = "800 30px " + F;
+    g.fillText((o.badge || "результат сессии").toUpperCase(), CARD_W / 2, y);
+    y += 150;
+    g.fillStyle = "#2b7fff"; g.font = "900 168px " + F;
+    g.fillText(String(o.score), CARD_W / 2, y);
+    y += 62;
+    g.fillStyle = "#0f2f5e"; g.font = "800 38px " + F;
+    g.fillText(o.sub || "", CARD_W / 2, y);
+
+    y += 84;
+    (o.rows || []).forEach(function (row) {
+      g.strokeStyle = "#e3edfa"; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(px + 74, y + 26); g.lineTo(px + pw - 74, y + 26); g.stroke();
+      g.textAlign = "left"; g.fillStyle = "#3a5a86"; g.font = "700 40px " + F;
+      g.fillText(row[0], px + 74, y);
+      g.textAlign = "right"; g.fillStyle = "#0f2f5e"; g.font = "900 40px " + F;
+      g.fillText(row[1], px + pw - 74, y);
+      g.textAlign = "center";
+      y += 82;
+    });
+
+    g.fillStyle = "#6a86a8"; g.font = "800 34px " + F;
+    g.fillText("cosmopolitan-atlas.online", CARD_W / 2, py + ph - 54);
+
+    // Значок сайта садится на верхний край панели — как медаль на карточке.
+    var img = new Image();
+    img.onload = function () { finish(img); };
+    img.onerror = function () { finish(null); };
+    img.src = "favicon-192.png";
+
+    function finish(icon) {
+      if (icon) {
+        var s = 190;
+        g.save();
+        g.shadowColor = "rgba(6,32,80,.3)"; g.shadowBlur = 34; g.shadowOffsetY = 10;
+        g.drawImage(icon, (CARD_W - s) / 2, py - s / 2 - 14, s, s);
+        g.restore();
+      }
+      c.toBlob(function (blob) { cb(blob, c.toDataURL("image/png")); }, "image/png");
+    }
+  }
+
+  var ICON_SHARE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>' +
+    '<path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
+
   // Телеграм и ВК открываем обычными ссылками на их формы, без подключения
   // чужих скриптов: и приватнее, и работает даже с блокировщиками.
   function shareBlock(opts) {
@@ -723,27 +825,49 @@
       "&image=" + encodeURIComponent(SITE + "favicon-512.png");
 
     var note = el("span", { class: "sharenote" }, []);
-    var copy = el("button", { class: "btn ghost", type: "button", onclick: function () {
-      var full = text + "\n" + url;
-      function done(ok) { note.textContent = ok ? "Скопировано" : "Не вышло скопировать — выделите текст вручную."; }
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(full).then(function () { done(true); }, function () { done(false); });
-      } else done(false);
-    } }, ["Скопировать"]);
+    var blob = null, dataUrl = null;
+    var preview = el("img", { class: "sharecard", alt: "Картинка с результатом" });
+    var wrap = el("div", { class: "sharebar" }, [kicker("Поделиться результатом")]);
 
-    var row = el("div", { class: "row" }, [
+    var shareBtn = el("button", {
+      class: "btn primary iconbtn", type: "button", "aria-label": "Поделиться результатом", title: "Поделиться",
+      html: ICON_SHARE
+    });
+    shareBtn.addEventListener("click", function () {
+      var files = blob ? [new File([blob], "cosmopolitan-atlas.png", { type: "image/png" })] : null;
+      var payload = { title: opts.title || "Cosmopolitan Atlas", text: text, url: url };
+      if (files && navigator.canShare && navigator.canShare({ files: files })) payload.files = files;
+      if (navigator.share) {
+        navigator.share(payload).catch(function () {});
+      } else if (dataUrl) {
+        saveCard();
+        note.textContent = "Браузер не умеет делиться напрямую — картинка сохранена, отправьте её вручную.";
+      }
+    });
+    function saveCard() {
+      if (!dataUrl) return;
+      var a = el("a", { href: dataUrl, download: "cosmopolitan-atlas.png" }, []);
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+    var saveBtn = el("button", { class: "btn ghost", type: "button", onclick: saveCard }, ["Сохранить картинку"]);
+
+    wrap.appendChild(el("div", { class: "row" }, [
+      shareBtn,
       el("a", { class: "btn tg", href: tg, target: "_blank", rel: "noopener noreferrer" }, ["Telegram"]),
       el("a", { class: "btn vk", href: vk, target: "_blank", rel: "noopener noreferrer" }, ["ВКонтакте"]),
-      copy
-    ]);
-    // На телефоне родное меню «Поделиться» удобнее любых кнопок — если оно есть,
-    // ставим его первым.
-    if (navigator.share) {
-      row.insertBefore(el("button", { class: "btn primary", type: "button", onclick: function () {
-        navigator.share({ title: opts.title || "Cosmopolitan", text: text, url: url }).catch(function () {});
-      } }, ["Поделиться"]), row.firstChild);
+      saveBtn
+    ]));
+    wrap.appendChild(note);
+    if (opts.card) {
+      wrap.appendChild(preview);
+      // Шрифт подгружается асинхронно; без ожидания открытка нарисуется системным.
+      var draw = function () {
+        resultImage(opts.card, function (b, d) { blob = b; dataUrl = d; preview.src = d; });
+      };
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw, draw);
+      else draw();
     }
-    return el("div", { class: "sharebar" }, [kicker("Поделиться результатом"), row, note]);
+    return wrap;
   }
 
   /* --- рейтинг --- */
@@ -920,7 +1044,7 @@
     project: project, insideCountry: insideCountry, nearCountry: nearCountry, insideAnyOther: insideAnyOther,
     mapSvg: mapSvg, zoomMap: zoomMap, locator: locator, closeView: closeView, regionIcon: regionIcon,
     countryAt: countryAt, placeName: placeName, distanceKm: distanceKm, formatKm: formatKm,
-    playMode: playMode, shareBlock: shareBlock,
+    playMode: playMode, shareBlock: shareBlock, resultImage: resultImage,
     population: population, popText: popText, countryCard: countryCard, verdict: verdict,
     currentDisplayName: currentDisplayName, pickPersona: pickPersona,
     submitToLeaderboard: submitToLeaderboard, fetchLeaderboard: fetchLeaderboard, hasServer: !!sb,
