@@ -345,3 +345,19 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
   .lostbox .lost h1,.lostbox .lost .sub{margin-left:0;margin-right:0;}
   .lostbox .lost .row{justify-content:flex-start;padding-bottom:0;}
 }
+
+/* Страница «технические шоколадки» — тот же синий разворот, что и у 404, но в
+   один столбец: тут нечего разглядывать, только прочитать и уйти. */
+.pausepage main{display:flex;}
+/* Шапки и подвала на этой странице нет, поэтому разворот растягиваем на весь
+   экран сам — иначе снизу оставалась бы светлая полоса. */
+.lost-solo{flex:1;display:flex;flex-direction:column;justify-content:center;
+  padding-bottom:clamp(30px,6vw,64px);}
+.lost-solo .pause-art{display:block;width:clamp(140px,26vw,230px);height:auto;margin:0 auto 6px;}
+/* Разворот стал колонкой flex, и «строчный» блок растянулся бы во всю ширину —
+   поэтому плашку центруем явно. */
+.lost-solo .pause-chip{align-self:center;margin:0;padding:8px 18px;border-radius:999px;
+  background:rgba(255,255,255,.2);font-size:14px;font-weight:900;letter-spacing:.04em;
+  text-transform:uppercase;color:#fff;}
+.lost-solo h1{font-size:clamp(24px,3.8vw,40px);margin-top:18px;max-width:20ch;}
+.lost-solo .row{padding-bottom:0;}
