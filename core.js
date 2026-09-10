@@ -787,65 +787,106 @@
     '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>' +
     '<path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
 
-  // Телеграм и ВК открываем обычными ссылками на их формы, без подключения
-  // чужих скриптов: и приватнее, и работает даже с блокировщиками.
+  // Умеет ли браузер отправлять файл через системное «Поделиться».
+  // Проверяем сразу пустышкой: от ответа зависит, какие кнопки вообще рисовать.
+  function canShareFiles() {
+    try {
+      if (!navigator.canShare) return false;
+      return navigator.canShare({ files: [new File([new Uint8Array(1)], "t.png", { type: "image/png" })] });
+    } catch (e) { return false; }
+  }
+
   function shareBlock(opts) {
     opts = opts || {};
     var url = opts.url || SITE, text = opts.text || "";
-    var tg = "https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text);
-    var vk = "https://vk.com/share.php?noparse=true&url=" + encodeURIComponent(url) +
-      "&title=" + encodeURIComponent(opts.title || "Cosmopolitan — атлас памяти") +
-      "&description=" + encodeURIComponent(text) +
-      "&image=" + encodeURIComponent(SITE + "favicon-512.png");
-
+    var files = canShareFiles();
     var note = el("span", { class: "sharenote" }, []);
-    var blob = null, dataUrl = null;
-    var preview = el("img", { class: "sharecard", alt: "Картинка с результатом" });
+    var blob = null, dataUrl = null, drawing = false, pending = null;
     var wrap = el("div", { class: "sharebar" }, [kicker("Поделиться результатом")]);
 
-    var shareBtn = el("button", {
-      class: "btn primary iconbtn", type: "button", "aria-label": "Поделиться результатом", title: "Поделиться",
-      html: ICON_SHARE
-    });
-    shareBtn.addEventListener("click", function () {
-      var files = blob ? [new File([blob], "cosmopolitan-atlas.png", { type: "image/png" })] : null;
-      var payload = { title: opts.title || "Cosmopolitan Atlas", text: text, url: url };
-      if (files && navigator.canShare && navigator.canShare({ files: files })) payload.files = files;
-      if (navigator.share) {
-        navigator.share(payload).catch(function () {});
-      } else if (dataUrl) {
-        saveCard();
-        note.textContent = "Браузер не умеет делиться напрямую — картинка сохранена, отправьте её вручную.";
-      }
-    });
+    // Открытку готовим заранее и молча — на странице её быть не должно. Заранее
+    // потому, что Safari разрешает вызвать «Поделиться» только пока живо
+    // касание: если начать рисовать после нажатия, окно уже не откроется.
+    function prepare(cb) {
+      if (blob) { cb && cb(); return; }
+      if (cb) pending = cb;
+      if (drawing) return;
+      drawing = true;
+      resultImage(opts.card, function (b, d) {
+        blob = b; dataUrl = d; drawing = false;
+        if (pending) { var f = pending; pending = null; f(); }
+      });
+    }
+    function cardFile() { return new File([blob], "cosmopolitan-atlas.png", { type: "image/png" }); }
     function saveCard() {
       if (!dataUrl) return;
       var a = el("a", { href: dataUrl, download: "cosmopolitan-atlas.png" }, []);
       document.body.appendChild(a); a.click(); a.remove();
     }
-    var saveBtn = el("button", { class: "btn ghost", type: "button", onclick: saveCard }, ["Сохранить картинку"]);
+
+    function doShare() {
+      if (!blob) {
+        note.textContent = "Готовим картинку…";
+        prepare(function () { note.textContent = ""; doShare(); });
+        return;
+      }
+      var payload = { title: opts.title || "Cosmopolitan Atlas", text: text, url: url };
+      if (files) payload.files = [cardFile()];
+      if (navigator.share) {
+        navigator.share(payload).catch(function () {});
+      } else {
+        saveCard();
+        note.textContent = "Картинка сохранена — прикрепите её к сообщению.";
+      }
+    }
 
     // Логотипы Телеграма и ВК узнаются без подписей, а места занимают втрое меньше.
     function socialBtn(href, icon, name) {
-      return el("a", { class: "btn social", href: href, target: "_blank", rel: "noopener noreferrer", title: name, "aria-label": name }, [
+      var a = el("a", { class: "btn social", href: href, target: "_blank", rel: "noopener noreferrer", title: name, "aria-label": name }, [
         el("img", { src: "art/" + icon + ".webp", alt: "", width: "30", height: "30", loading: "lazy" })
       ]);
+      a.addEventListener("click", function () {
+        note.textContent = "Готовим картинку…";
+        prepare(function () {
+          saveCard();
+          note.textContent = "Картинка сохранена — приложите её к сообщению.";
+        });
+      });
+      return a;
     }
-    wrap.appendChild(el("div", { class: "row" }, [
-      shareBtn,
-      socialBtn(tg, "tg", "Поделиться в Telegram"),
-      socialBtn(vk, "vk", "Поделиться во ВКонтакте"),
-      saveBtn
-    ]));
+
+    var shareBtn = el("button", {
+      class: "btn primary iconbtn", type: "button", "aria-label": "Поделиться результатом", title: "Поделиться",
+      html: ICON_SHARE
+    });
+    shareBtn.addEventListener("click", doShare);
+
+    // Если системного «Поделиться» нет вовсе, кнопка-значок повторяла бы
+    // «Сохранить картинку» — тогда не показываем её совсем.
+    var row = el("div", { class: "row" }, navigator.share ? [shareBtn] : []);
+    if (files) {
+      // Телеграм и ВК сами появятся в системном окне — отдельные кнопки не нужны.
+      wrap.appendChild(row);
+      wrap.appendChild(el("p", { class: "sharehint" }, ["Картинка с результатом откроется в списке приложений — Telegram, ВКонтакте и куда угодно ещё."]));
+    } else {
+      // На компьютере файл через браузер не передать: сохраняем картинку и
+      // открываем форму Телеграма или ВК, куда её остаётся приложить. Формы
+      // открываем обычными ссылками, без чужих скриптов: и приватнее, и
+      // работает даже с блокировщиками.
+      row.appendChild(socialBtn("https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text), "tg", "Отправить в Telegram"));
+      row.appendChild(socialBtn("https://vk.com/share.php?noparse=true&url=" + encodeURIComponent(url) +
+        "&title=" + encodeURIComponent(opts.title || "Cosmopolitan — атлас памяти") +
+        "&description=" + encodeURIComponent(text) +
+        "&image=" + encodeURIComponent(SITE + "favicon-512.png"), "vk", "Отправить во ВКонтакте"));
+      row.appendChild(el("button", { class: "btn ghost", type: "button", onclick: function () { prepare(saveCard); } }, ["Сохранить картинку"]));
+      wrap.appendChild(row);
+      wrap.appendChild(el("p", { class: "sharehint" }, ["Картинка сохранится на компьютер — её останется приложить к сообщению."]));
+    }
     wrap.appendChild(note);
     if (opts.card) {
-      wrap.appendChild(preview);
       // Шрифт подгружается асинхронно; без ожидания открытка нарисуется системным.
-      var draw = function () {
-        resultImage(opts.card, function (b, d) { blob = b; dataUrl = d; preview.src = d; });
-      };
-      if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw, draw);
-      else draw();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { prepare(); }, function () { prepare(); });
+      else prepare();
     }
     return wrap;
   }
