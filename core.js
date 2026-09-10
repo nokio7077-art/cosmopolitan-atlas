@@ -327,6 +327,36 @@
     }
     return out;
   }
+  // В контурах есть земли, которых нет среди 192 стран игры. В ответ они не
+  // годятся, но сказать человеку, куда он попал, надо честно.
+  var TERRITORIES = {
+    eh: "Западная Сахара", fk: "Фолклендские острова", gl: "Гренландия",
+    tf: "Французские южные территории", pr: "Пуэрто-Рико", ps: "Палестина",
+    nc: "Новая Каледония", tw: "Тайвань", aq: "Антарктида", xk: "Косово"
+  };
+  // Что находится под точкой: страна, территория или вода.
+  function placeName(lng, lat) {
+    for (var iso in window.GEO_DATA) {
+      if (!insideCountry(iso, lng, lat)) continue;
+      var c = byIso(iso);
+      return c ? c.n : (TERRITORIES[iso] || null);
+    }
+    return null;
+  }
+  // Расстояние по дуге большого круга, километры.
+  function distanceKm(lng1, lat1, lng2, lat2) {
+    var R = 6371, rad = Math.PI / 180;
+    var dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+  }
+  // Точность тут ни к чему: важен порядок промаха, а не третий знак.
+  function formatKm(km) {
+    var v = km < 100 ? Math.round(km / 10) * 10 : (km < 1000 ? Math.round(km / 50) * 50 : Math.round(km / 100) * 100);
+    return groupDigits(Math.max(10, v)) + "\u00A0км";
+  }
+
   // Какая страна под точкой: сначала контуры, потом — ближайшее из государств
   // без контура, если тыкнули рядом с ним.
   function countryAt(lng, lat, tolDeg) {
@@ -843,7 +873,7 @@
     saveSession: saveSession, loadSession: loadSession, clearSession: clearSession,
     project: project, insideCountry: insideCountry, nearCountry: nearCountry, insideAnyOther: insideAnyOther,
     mapSvg: mapSvg, zoomMap: zoomMap, locator: locator, closeView: closeView, regionIcon: regionIcon,
-    countryAt: countryAt,
+    countryAt: countryAt, placeName: placeName, distanceKm: distanceKm, formatKm: formatKm,
     population: population, popText: popText, countryCard: countryCard, verdict: verdict,
     currentDisplayName: currentDisplayName, pickPersona: pickPersona,
     submitToLeaderboard: submitToLeaderboard, fetchLeaderboard: fetchLeaderboard, hasServer: !!sb,

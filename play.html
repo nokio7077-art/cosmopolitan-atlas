@@ -356,10 +356,24 @@ CA.ready(function () {
     } else {
       box.appendChild(CA.verdict(r.mapOk, r.mapOk
         ? ["Отметка внутри страны. Плюс 10 очков."]
-        : ["Зелёная точка — верное место, красная — ваша отметка. Страну добавили в список «Стоит повторить» — он ждёт в конце сессии."]));
+        : missText(r)));
       box.appendChild(el("button", { class: "btn primary", type: "button", onclick: finish }, ["Итог раунда"]));
     }
     return box;
+  }
+
+  // Промах объясняем предметно: куда именно попала отметка и как далеко это от
+  // нужной страны. «Мимо» ничему не учит, а «это Казахстан, до цели 1 900 км» —
+  // вполне.
+  function missText(r) {
+    var lng = r.aim ? r.aim.lng : (r.click.x / 1000 * 360 - 180);
+    var lat = r.aim ? r.aim.lat : (90 - r.click.y / 500 * 180);
+    var where = CA.placeName(lng, lat);
+    var km = CA.formatKm(CA.distanceKm(lng, lat, r.c.lng, r.c.lat));
+    return [
+      "Красная точка — ваша отметка: " + (where ? "это " + where + "." : "это открытое море, суши там нет."),
+      " Зелёная показывает верное место — до него отсюда около " + km + ". Страну добавили в список «Стоит повторить»."
+    ];
   }
 
   function submitMap(r, aim) {
