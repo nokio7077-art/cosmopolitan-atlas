@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Страницу отдают по любому несуществующему адресу, в том числе вложенному,
+     поэтому все относительные ссылки считаем от корня сайта. -->
+<base href="/">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://mc.yandex.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://examtwlpaeheturjkacc.supabase.co https://mc.yandex.ru">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="favicon-16.png" type="image/png" sizes="16x16">
+<link rel="icon" href="favicon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="robots" content="noindex, follow">
+<title>Страница не найдена — Cosmopolitan, атлас памяти</title>
+<meta name="description" content="Такой страницы на сайте нет. Вернитесь на главную или начните новую партию по странам, столицам и флагам.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="lostpage">
+<main id="app">
+  <section class="lost">
+    <p class="lost-num">404</p>
+    <h1>Кажется, вы заблудились на просторах интернета</h1>
+    <p class="sub">Страница, которую вы ищете, не найдена. Но не переживайте, Земля тоже иногда теряется.</p>
+    <div class="row">
+      <a class="btn primary" href="index.html">На главную</a>
+      <a class="btn ghost" href="play.html">Начать игру</a>
+    </div>
+  </section>
+  <div class="lost-art">
+    <img src="art/404.webp" width="1000" height="1066" alt="Земля читает газету в кресле-качалке, рядом спит кот">
+  </div>
+</main>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+CA.ready(function () {});
+</script>
+</body>
+</html>
