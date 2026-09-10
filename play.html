@@ -51,6 +51,7 @@ CA.ready(function () {
       : viewEnd();
     CA.mount(node);
     CA.playMode(st.view === "round");
+    CA.playBar(st.view === "round" ? roundBar() : null);
     // Пока идёт игра, храним снимок: с карточки страны человек должен вернуться
     // ровно туда, где остановился, а не в начало.
     if (st.view === "round" || st.view === "end") saveGame();
@@ -205,27 +206,30 @@ CA.ready(function () {
     return "стран";
   }
 
-  function hud() {
-    var items = [
-      el("span", { class: "kicker" }, ["Раунд " + (st.i + 1) + " / " + st.queue.length]),
-      el("span", { class: "kicker" }, [st.score + " очков"])
-    ];
-    if (st.combo >= 3) items.push(el("span", { class: "kicker sp" }, ["комбо ×1.5"]));
-    else if (st.combo > 0) items.push(el("span", { class: "kicker" }, ["серия " + st.combo]));
-    items.push(el("span", { class: "kicker" }, [CA.regionName(st.region)]));
-    items.push(el("a", { class: "kicker", href: "index.html", onclick: function () { CA.clearSession(); } }, ["Выйти"]));
-    return el("div", {}, [el("hr", { class: "rule" }), el("div", { class: "hud" }, items), el("hr", { class: "hairline" })]);
+  // Полоса хода в шапке. Раунд из трёх шагов, поэтому заполняем её и внутри
+  // раунда: иначе она стояла бы на месте, пока человек отвечает на три вопроса.
+  var STEP_PART = { capital: 0, flag: 1 / 3, map: 2 / 3, summary: 1 };
+  function roundBar() {
+    var n = st.queue.length, r = st.round || {};
+    var part = STEP_PART[r.step] != null ? STEP_PART[r.step] : 0;
+    return CA.gameBar({
+      label: (st.i + 1) + " / " + n,
+      aria: "Раунд " + (st.i + 1) + " из " + n,
+      ratio: n ? (st.i + part) / n : 0,
+      combo: st.combo >= 3 ? "×1.5" : null,
+      score: st.score
+    });
   }
 
   function viewRound() {
-    var box = el("div", { class: "screen", style: "padding-top:22px" }, [hud()]);
+    var box = el("div", { class: "screen" }, []);
     var r = st.round;
     box.appendChild(r.step === "capital" ? stepCapital(r) : r.step === "flag" ? stepFlag(r) : r.step === "map" ? stepMap(r) : stepSummary(r));
     return box;
   }
 
   function stepCapital(r) {
-    var box = el("div", { style: "padding-top:48px" }, [
+    var box = el("div", { style: "padding-top:26px" }, [
       k("Шаг 1 из 3 · столица", "ac"),
       el("h1", { class: "big", style: "margin:14px 0 12px" }, [r.c.n])
     ]);
@@ -292,7 +296,7 @@ CA.ready(function () {
         r.flagDone = true; r.flagOk = c.f === r.c.f; r.pick = c.f; render();
       } }, [el("img", { src: CA.flagUrl(c.f), alt: "Флаг", loading: "lazy", decoding: "async" })]);
     }
-    var box = el("div", { style: "padding-top:36px" }, [
+    var box = el("div", { style: "padding-top:26px" }, [
       k("Шаг 2 из 3 · флаг", "ac"),
       el("h1", { class: "big", style: "font-size:clamp(30px,4.5vw,52px);margin:10px 0 12px" }, [r.c.n])
     ]);
@@ -344,7 +348,7 @@ CA.ready(function () {
       note.textContent = AIMED;
     };
 
-    var box = el("div", { style: "padding-top:36px" }, [
+    var box = el("div", { style: "padding-top:26px" }, [
       k("Шаг 3 из 3 · где это на карте", "ac"),
       el("h1", { class: "big", style: "font-size:clamp(28px,4vw,44px);margin:14px 0 18px" }, [r.c.n])
     ]);
@@ -441,7 +445,7 @@ CA.ready(function () {
       ["Множитель комбо", "×" + r.mult, true]
     ];
     var last = st.i + 1 >= st.queue.length;
-    return el("div", { style: "padding-top:44px" }, [el("div", { class: "grid two", style: "align-items:start" }, [
+    return el("div", { style: "padding-top:30px" }, [el("div", { class: "grid two", style: "align-items:start" }, [
       el("div", {}, [
         el("h1", { class: "big", style: "font-size:clamp(34px,5.5vw,64px);margin-bottom:26px" }, [r.c.n]),
         el("table", {}, [el("tbody", {}, rows.map(function (row) {

@@ -37,6 +37,7 @@ CA.ready(function () {
     app.innerHTML = "";
     CA.mount(st.view === "regions" ? viewRegions() : st.view === "setup" ? viewSetup() : st.view === "round" ? viewRound() : viewEnd());
     CA.playMode(st.view === "round");
+    CA.playBar(st.view === "round" ? roundBar() : null);
     window.scrollTo(0, 0);
   }
   function start(size) {
@@ -97,6 +98,17 @@ CA.ready(function () {
     ]);
   }
 
+  // Полоса хода в шапке: цифры, жёлтая шкала и счёт верных ответов.
+  function roundBar() {
+    var n = st.queue.length;
+    return CA.gameBar({
+      label: (st.i + 1) + " / " + n,
+      aria: "Флаг " + (st.i + 1) + " из " + n,
+      ratio: n ? (st.i + (st.done ? 1 : 0)) / n : 0,
+      score: st.correct
+    });
+  }
+
   function viewRound() {
     var c = st.queue[st.i];
     var right = el("div", {}, [el("h1", { class: "big", style: "font-size:clamp(28px,4.5vw,48px);margin-bottom:18px" }, ["Какая это страна?"])]);
@@ -120,16 +132,8 @@ CA.ready(function () {
         el("a", { class: "btn ghost", href: "country.html?iso=" + c.f }, ["Карточка страны"])
       ]));
     }
-    return el("div", { class: "screen", style: "padding-top:22px" }, [
-      el("hr", { class: "rule" }),
-      el("div", { class: "hud" }, [
-        el("span", { class: "kicker" }, ["Флаг " + (st.i + 1) + " / " + st.queue.length]),
-        el("span", { class: "kicker" }, [st.correct + " верно"]),
-        el("span", { class: "kicker" }, [CA.regionName(st.region)]),
-        el("a", { class: "kicker", href: "index.html" }, ["Выйти"])
-      ]),
-      el("hr", { class: "hairline" }),
-      el("div", { class: "grid two", style: "margin-top:36px;align-items:center" }, [
+    return el("div", { class: "screen" }, [
+      el("div", { class: "grid two", style: "margin-top:8px;align-items:center" }, [
         el("img", { src: CA.flagUrl(c.f), alt: "", decoding: "async", style: "display:block;width:100%;aspect-ratio:3/2;object-fit:contain;background:var(--n200);box-shadow:var(--sh-sm)" }),
         right
       ])
