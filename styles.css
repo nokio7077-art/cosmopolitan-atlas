@@ -304,3 +304,22 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
   .list{padding:4px 16px;}
 }
 @media (prefers-reduced-motion:reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+
+/* Страница 404: синий разворот во всю ширину. Фон — два вертикальных
+   градиента, состыкованных ровно по верхнему краю картинки: её собственные
+   края растворены в прозрачность прямо в файле, потому что диагональный
+   градиент иллюстрации средствами CSS не повторить, а на стыке была бы видна
+   рамка. Цвета взяты замером крайних рядов самого файла. */
+.lost{background:linear-gradient(180deg,#3d91e6 0%,#4ca0ed 100%);color:#fff;text-align:center;
+  padding:clamp(26px,5vw,54px) 18px 0;}
+.lost-num{font-size:clamp(76px,15vw,152px);line-height:1;font-weight:900;letter-spacing:-.045em;margin:0;
+  text-shadow:0 10px 34px rgba(9,54,120,.25);}
+.lost h1{font-size:clamp(21px,3.4vw,34px);line-height:1.3;font-weight:900;margin:12px auto 0;max-width:17ch;}
+.lost .sub{font-size:clamp(15px,1.7vw,18px);line-height:1.55;font-weight:700;color:rgba(255,255,255,.87);
+  margin:14px auto 0;max-width:46ch;}
+.lost .row{justify-content:center;margin-top:26px;padding-bottom:clamp(20px,4vw,40px);}
+.lost .btn.ghost{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.6);color:#fff;}
+.lost .btn.ghost:hover{background:rgba(255,255,255,.3);border-color:#fff;color:#fff;}
+.lost-art{background:linear-gradient(180deg,#4ca0ed 0%,#aad8fc 100%);}
+.lost-art img{display:block;width:100%;max-width:700px;height:auto;margin:0 auto;}
+.lostpage .site-footer{margin-top:0;}
