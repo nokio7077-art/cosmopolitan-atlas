@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://mc.yandex.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://examtwlpaeheturjkacc.supabase.co https://mc.yandex.ru">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="favicon-16.png" type="image/png" sizes="16x16">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<link rel="canonical" href="https://cosmopolitan-atlas.online/map.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cosmopolitan — атлас памяти">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="Политическая карта мира с названиями стран | Cosmopolitan">
+<meta property="og:description" content="Интерактивная политическая карта мира: все 192 страны с подписями. Приближайте — и появятся названия маленьких государств, от Люксембурга до Науру.">
+<meta property="og:url" content="https://cosmopolitan-atlas.online/map.html">
+<meta property="og:image" content="https://cosmopolitan-atlas.online/favicon-512.png">
+<meta name="twitter:card" content="summary">
+<title>Политическая карта мира с названиями стран | Cosmopolitan</title>
+<meta name="description" content="Интерактивная политическая карта мира: все 192 страны с подписями. Приближайте — и появятся названия маленьких государств, от Люксембурга до Науру.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main id="app"></main>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+CA.ready(function () {
+  var el = CA.el, k = CA.kicker;
+
+  var info = el("div", { class: "mapinfo empty" }, [
+    el("p", { style: "margin:0" }, ["Нажмите на страну — покажем её флаг, столицу и население."])
+  ]);
+
+  function showCountry(c) {
+    info.className = "mapinfo";
+    info.innerHTML = "";
+    info.appendChild(el("img", { class: "mi-flag", src: CA.flagUrl(c.f), alt: "Флаг: " + c.n, decoding: "async" }));
+    info.appendChild(el("div", { class: "mi-body" }, [
+      el("div", { class: "mi-name" }, [c.n]),
+      el("div", { class: "mi-meta" }, [
+        "Столица — " + c.c + " · " + CA.regionName(c.r) +
+        (CA.popText(c.f) ? " · " + CA.popText(c.f) + " человек" : "")
+      ])
+    ]));
+    info.appendChild(el("a", { class: "btn primary", href: "country.html?iso=" + c.f }, ["Карточка страны"]));
+  }
+
+  // Атлас, а не мишень: приближение до 48×, чтобы дочитались подписи у самых
+  // мелких государств, и обычный курсор вместо перекрестия.
+  var map = CA.zoomMap({
+    label: "Политическая карта мира с названиями стран",
+    political: true, labels: true, explore: true, maxZoom: 32,
+    onPick: function (p) {
+      var c = CA.countryAt(p.lng, p.lat, Math.max(1.2, 10 * p.upp * 0.36));
+      if (!c) return;
+      map.setHighlight(c.f, "#ffd66b");
+      showCountry(c);
+    }
+  });
+
+  CA.mount(el("div", { class: "screen" }, [
+    el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:14px" }, [
+      el("a", { href: "index.html" }, ["← На главную"]), k("Атлас · 192 страны")
+    ]),
+    el("h1", { class: "big", style: "font-size:clamp(30px,4.5vw,52px);margin-bottom:12px" }, ["Политическая карта мира"]),
+    el("p", { class: "lede", style: "margin:0 0 22px" }, [
+      "Крупные страны подписаны сразу. Приближайте — и появятся названия тех, кому на общем плане не хватило места: Люксембурга, Бахрейна, Науру."
+    ]),
+    map,
+    el("p", { style: "margin:14px 0 0;font-size:15px;color:var(--ink3)" }, [
+      "Приблизить: кнопки + и − под картой, двойное нажатие по нужному месту, колесо мыши или щипок двумя пальцами. Приближённую карту можно двигать перетаскиванием."
+    ]),
+    info
+  ]));
+});
+</script>
+</body>
+</html>

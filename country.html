@@ -62,6 +62,11 @@ CA.ready(function () {
   var link = document.querySelector('link[rel="canonical"]');
   if (link) link.setAttribute("href", pageUrl);
 
+  // Если сюда пришли из игры и та ещё не закончена — уводим обратно в неё, на тот
+  // же раунд и шаг, а не в общий индекс стран.
+  var backToGame = CA.qs("from") === "play" && !!CA.loadSession();
+  var tail = backToGame ? "&from=play" : "";
+
   var idx = COUNTRIES.filter(function (x) { return x.r === c.r; }).sort(function (a, b) { return a.n.localeCompare(b.n, "ru"); });
   var pos = idx.map(function (x) { return x.f; }).indexOf(c.f);
   var prev = idx[(pos - 1 + idx.length) % idx.length], nxt = idx[(pos + 1) % idx.length];
@@ -70,7 +75,9 @@ CA.ready(function () {
   // содержимым больше нет, поэтому и здесь карточку можно перевернуть.
   CA.mount(el("div", { class: "screen" }, [
     el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;gap:16px;flex-wrap:wrap" }, [
-      el("a", { href: "index.html" }, ["← Индекс стран"]),
+      backToGame
+        ? el("a", { href: "play.html?resume=1" }, ["← Вернуться к игре"])
+        : el("a", { href: "index.html" }, ["← Индекс стран"]),
       k(CA.regionName(c.r) + (CA.isStudied(c.f) ? " · изучено" : ""))
     ]),
     el("h1", { class: "big", style: "font-size:clamp(34px,6vw,68px);margin-bottom:26px" }, [c.n]),
@@ -82,8 +89,8 @@ CA.ready(function () {
           el("a", { class: "btn primary block", href: "play.html?iso=" + c.f, style: "text-align:center" }, ["Сыграть эту страну"])
         ]),
         el("div", { class: "row", style: "margin-top:14px" }, [
-          el("a", { class: "btn ghost", href: "country.html?iso=" + prev.f }, ["← " + prev.n]),
-          el("a", { class: "btn ghost", href: "country.html?iso=" + nxt.f }, [nxt.n + " →"])
+          el("a", { class: "btn ghost", href: "country.html?iso=" + prev.f + tail }, ["← " + prev.n]),
+          el("a", { class: "btn ghost", href: "country.html?iso=" + nxt.f + tail }, [nxt.n + " →"])
         ])
       ])
     ])

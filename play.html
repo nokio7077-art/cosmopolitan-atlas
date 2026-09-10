@@ -40,7 +40,7 @@ CA.ready(function () {
   var st = {
     view: "regions", region: null, queue: [], i: 0, round: null,
     score: 0, combo: 0, mistakes: {}, capital: "", submitted: false, sending: false, submitMsg: null,
-    difficulty: "easy"
+    difficulty: "easy", sizeKey: "10"
   };
 
   function render() {
@@ -50,7 +50,50 @@ CA.ready(function () {
       : st.view === "round" ? viewRound()
       : viewEnd();
     CA.mount(node);
+    // Пока идёт игра, храним снимок: с карточки страны человек должен вернуться
+    // ровно туда, где остановился, а не в начало.
+    if (st.view === "round" || st.view === "end") saveGame();
     window.scrollTo(0, 0);
+  }
+
+  function saveGame() {
+    var r = st.round;
+    CA.saveSession({
+      v: 1, region: st.region, queue: st.queue.map(function (c) { return c.f; }), i: st.i,
+      score: st.score, combo: st.combo, mistakes: st.mistakes, capital: st.capital,
+      difficulty: st.difficulty, sizeKey: st.sizeKey, view: st.view,
+      submitted: st.submitted, submitMsg: st.submitMsg,
+      round: r ? {
+        iso: r.c.f, step: r.step, capOk: r.capOk, capDone: r.capDone, hint: r.hint,
+        capOptions: r.capOptions, flagDone: r.flagDone, flagOk: r.flagOk, pick: r.pick,
+        flagOptions: r.flagOptions ? r.flagOptions.map(function (c) { return c.f; }) : null,
+        mapDone: r.mapDone, mapOk: r.mapOk, aim: r.aim, click: r.click, target: r.target,
+        points: r.points, mult: r.mult
+      } : null
+    });
+  }
+  // Карту в снимок не кладём: там живой DOM. Она соберётся заново, зато шаг,
+  // счёт, серия и уже данные ответы вернутся как были.
+  function restoreGame(s) {
+    if (!s || s.v !== 1 || !s.queue || !s.queue.length) return false;
+    var queue = s.queue.map(CA.byIso).filter(Boolean);
+    if (!queue.length) return false;
+    st.region = s.region; st.queue = queue; st.i = Math.min(s.i || 0, queue.length - 1);
+    st.score = s.score || 0; st.combo = s.combo || 0; st.mistakes = s.mistakes || {};
+    st.capital = s.capital || ""; st.difficulty = s.difficulty || "easy";
+    st.sizeKey = s.sizeKey || "10"; st.submitted = !!s.submitted; st.submitMsg = s.submitMsg || null;
+    st.view = s.view === "end" ? "end" : "round";
+    if (s.round) {
+      var c = CA.byIso(s.round.iso) || st.queue[st.i];
+      var r = newRound(c);
+      ["step", "capOk", "capDone", "hint", "capOptions", "flagDone", "flagOk", "pick",
+       "mapDone", "mapOk", "aim", "click", "target", "points", "mult"].forEach(function (key) {
+        if (s.round[key] !== undefined && s.round[key] !== null) r[key] = s.round[key];
+      });
+      if (s.round.flagOptions) r.flagOptions = s.round.flagOptions.map(CA.byIso).filter(Boolean);
+      st.round = r;
+    } else st.round = newRound(st.queue[st.i]);
+    return true;
   }
   function newRound(c) {
     return { c: c, step: "capital", capOk: false, capDone: false, hint: null, capOptions: null,
@@ -73,6 +116,7 @@ CA.ready(function () {
     return CA.shuffle(pool.concat([c]));
   }
   function start(regionKey, size, forced) {
+    CA.clearSession();
     var list = forced || CA.regionCountries(regionKey);
     st.region = regionKey;
     st.queue = forced ? forced : CA.shuffle(list).slice(0, Math.min(size || list.length, list.length));
@@ -106,6 +150,12 @@ CA.ready(function () {
 
   function viewSetup() {
     var list = CA.regionCountries(st.region);
+    // Количество — такой же выбор, как сложность: кнопка «10 стран» не должна
+    // мгновенно уносить в игру, иначе передумать со сложностью уже нельзя.
+    var sizes = [["10", "10 стран", 10], ["20", "20 стран", 20], ["all", "Весь регион (" + list.length + ")", list.length]];
+    var pick = sizes[0];
+    sizes.forEach(function (sz) { if (sz[0] === st.sizeKey) pick = sz; });
+
     return el("div", { class: "screen" }, [
       el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px" }, [
         el("a", { href: "#", onclick: function (e) { e.preventDefault(); st.view = "regions"; render(); } }, ["← Регионы"]),
@@ -113,7 +163,7 @@ CA.ready(function () {
       ]),
       el("h1", { class: "big", style: "font-size:clamp(32px,4.5vw,48px);margin-bottom:14px" }, ["Сколько стран разыграть?"]),
       el("p", { class: "lede", style: "margin:0 0 22px" }, ["Десять — короткая разминка, весь регион — серьёзная работа. Прогресс считается в любом случае."]),
-      el("div", { style: "margin-bottom:28px" }, [
+      el("div", { style: "margin-bottom:26px" }, [
         k("Сложность · шаг «столица»"),
         el("div", { class: "row", style: "margin-top:10px" }, [
           el("button", {
@@ -126,12 +176,30 @@ CA.ready(function () {
           }, ["Сложно · ввести вручную"])
         ])
       ]),
-      el("div", { class: "row" }, [
-        el("button", { class: "btn primary", type: "button", onclick: function () { start(st.region, 10); } }, ["10 стран"]),
-        el("button", { class: "btn", type: "button", onclick: function () { start(st.region, 20); } }, ["20 стран"]),
-        el("button", { class: "btn ghost", type: "button", onclick: function () { start(st.region, list.length); } }, ["Весь регион (" + list.length + ")"])
+      el("div", { style: "margin-bottom:30px" }, [
+        k("Сколько стран"),
+        el("div", { class: "row", style: "margin-top:10px" }, sizes.map(function (sz) {
+          return el("button", {
+            class: "btn" + (st.sizeKey === sz[0] ? " primary" : " ghost"), type: "button",
+            onclick: function () { st.sizeKey = sz[0]; render(); }
+          }, [sz[1]]);
+        }))
+      ]),
+      el("div", { class: "startbar" }, [
+        el("button", { class: "btn primary go", type: "button", onclick: function () { start(st.region, pick[2]); } }, ["Играть →"]),
+        el("span", { class: "startnote" }, [
+          CA.regionName(st.region) + " · " + pick[2] + " " + countryWord(pick[2]) +
+          " · " + (st.difficulty === "easy" ? "лёгкий уровень" : "сложный уровень")
+        ])
       ])
     ]);
+  }
+  function countryWord(n) {
+    var t = n % 100, o = n % 10;
+    if (t > 10 && t < 20) return "стран";
+    if (o === 1) return "страна";
+    if (o > 1 && o < 5) return "страны";
+    return "стран";
   }
 
   function hud() {
@@ -142,7 +210,7 @@ CA.ready(function () {
     if (st.combo >= 3) items.push(el("span", { class: "kicker sp" }, ["комбо ×1.5"]));
     else if (st.combo > 0) items.push(el("span", { class: "kicker" }, ["серия " + st.combo]));
     items.push(el("span", { class: "kicker" }, [CA.regionName(st.region)]));
-    items.push(el("a", { class: "kicker", href: "index.html" }, ["Выйти"]));
+    items.push(el("a", { class: "kicker", href: "index.html", onclick: function () { CA.clearSession(); } }, ["Выйти"]));
     return el("div", {}, [el("hr", { class: "rule" }), el("div", { class: "hud" }, items), el("hr", { class: "hairline" })]);
   }
 
@@ -288,10 +356,24 @@ CA.ready(function () {
     } else {
       box.appendChild(CA.verdict(r.mapOk, r.mapOk
         ? ["Отметка внутри страны. Плюс 10 очков."]
-        : ["Зелёная точка — верное место, красная — ваша отметка. Страну добавили в список «Стоит повторить» — он ждёт в конце сессии."]));
+        : missText(r)));
       box.appendChild(el("button", { class: "btn primary", type: "button", onclick: finish }, ["Итог раунда"]));
     }
     return box;
+  }
+
+  // Промах объясняем предметно: куда именно попала отметка и как далеко это от
+  // нужной страны. «Мимо» ничему не учит, а «это Казахстан, до цели 1 900 км» —
+  // вполне.
+  function missText(r) {
+    var lng = r.aim ? r.aim.lng : (r.click.x / 1000 * 360 - 180);
+    var lat = r.aim ? r.aim.lat : (90 - r.click.y / 500 * 180);
+    var where = CA.placeName(lng, lat);
+    var km = CA.formatKm(CA.distanceKm(lng, lat, r.c.lng, r.c.lat));
+    return [
+      "Красная точка — ваша отметка: " + (where ? "это " + where + "." : "это открытое море, суши там нет."),
+      " Зелёная показывает верное место — до него отсюда около " + km + ". Страну добавили в список «Стоит повторить»."
+    ];
   }
 
   function submitMap(r, aim) {
@@ -365,7 +447,7 @@ CA.ready(function () {
           r.capOk && r.flagOk && r.mapOk ? r.c.n + " теперь идёт в зачёт как изученная страна." : "Страна вернётся в подборку для повторения."
         ]),
         el("button", { class: "btn primary block", type: "button", onclick: next }, [last ? "Итоги сессии" : "Дальше"]),
-        el("div", { style: "margin-top:14px" }, [el("a", { class: "btn ghost block", href: "country.html?iso=" + r.c.f, style: "text-align:center" }, ["Открыть карточку страны"])])
+        el("div", { style: "margin-top:14px" }, [el("a", { class: "btn ghost block", href: "country.html?iso=" + r.c.f + "&from=play", style: "text-align:center" }, ["Открыть карточку страны"])])
       ])
     ])]);
   }
@@ -393,7 +475,7 @@ CA.ready(function () {
     var right = el("div", {}, [el("h2", { style: "font-size:30px;line-height:34px;margin-bottom:18px" }, ["Стоит повторить"])]);
     if (names.length) {
       right.appendChild(el("div", { class: "list" }, names.map(function (n) {
-        return el("a", { class: "li clickable", href: "country.html?iso=" + st.mistakes[n].iso }, [
+        return el("a", { class: "li clickable", href: "country.html?iso=" + st.mistakes[n].iso + "&from=play" }, [
           el("span", {}, [n]), el("span", { style: "color:var(--n700)" }, [st.mistakes[n].what])
         ]);
       })));
@@ -435,6 +517,7 @@ CA.ready(function () {
     ]);
   }
 
+  if (CA.qs("resume") && restoreGame(CA.loadSession())) { render(); return; }
   if (forcedIso) {
     var c = CA.byIso(forcedIso);
     if (c) { start(c.r, 1, [c]); return; }
