@@ -63,11 +63,14 @@ CA.ready(function () {
         el("h2", { style: "font-size:30px;line-height:34px;margin-bottom:18px" }, ["По регионам"]),
         el("div", { style: "display:flex;flex-direction:column;gap:18px" }, ["world"].concat(CA.REGION_ORDER).map(function (key) {
           var list = CA.regionCountries(key), done = CA.studiedCount(key);
-          return el("div", {}, [
-            el("div", { style: "display:flex;justify-content:space-between" }, [
-              el("span", {}, [CA.regionName(key)]), el("span", {}, [done + "/" + list.length])
-            ]),
-            CA.bar(Math.round(100 * done / Math.max(1, list.length)))
+          return el("div", { style: "display:flex;align-items:center;gap:14px" }, [
+            CA.regionIcon(key),
+            el("div", { style: "flex:1;min-width:0" }, [
+              el("div", { style: "display:flex;justify-content:space-between;gap:12px" }, [
+                el("span", {}, [CA.regionName(key)]), el("span", {}, [done + "/" + list.length])
+              ]),
+              CA.bar(Math.round(100 * done / Math.max(1, list.length)))
+            ])
           ]);
         }))
       ]),

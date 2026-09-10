@@ -621,21 +621,20 @@
     ["index.html", "Главная"], ["play.html", "Играть"], ["flags.html", "Флаги"],
     ["learn.html", "Карточки"], ["board.html", "Рейтинг"], ["stats.html", "Статистика"]
   ];
-  var ICON_USER = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></svg>';
   var ICON_STAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="#1b1200"><path d="M12 2.6l2.7 5.9 6.3.7-4.7 4.3 1.3 6.3L12 16.6 6.4 19.8l1.3-6.3L3 9.2l6.3-.7z"/></svg>';
-  // Значок в шапке — та же карта мира, обрезанная в круг.
   function brandMark() {
-    var box = el("span", { class: "mark" });
-    try {
-      var m = mapSvg({ view: { x: 420, y: 90, w: 240, h: 240 }, label: "" });
-      var svg = m.querySelector("svg");
-      svg.querySelector("rect").setAttribute("fill", "#4aa8f0");
-      Array.prototype.forEach.call(svg.querySelectorAll("path"), function (p) {
-        p.setAttribute("fill", "#79c56a"); p.setAttribute("stroke", "#5fb355");
-      });
-      box.appendChild(svg);
-    } catch (e) {}
-    return box;
+    return el("img", { class: "mark", src: "art/globe.png", alt: "", width: "44", height: "44" });
+  }
+  // Значки регионов — рисованные, лежат в art/.
+  var REGION_ART = {
+    world: "globe", europe: "r-europe", asia: "r-asia", africa: "r-africa",
+    namerica: "r-namerica", samerica: "r-samerica", oceania: "r-oceania"
+  };
+  function regionIcon(key, size) {
+    return el("img", {
+      class: "ricon", src: "art/" + (REGION_ART[key] || "globe") + ".png", alt: "",
+      loading: "lazy", decoding: "async", style: size ? "width:" + size + "px;height:" + size + "px" : null
+    });
   }
   function chrome() {
     var here = (location.pathname.split("/").pop() || "index.html");
@@ -647,7 +646,9 @@
         el("a", { class: "nav-brand", href: "index.html" }, [brandMark(), "Cosmopolitan Atlas"]),
         links,
         el("div", { class: "nav-right" }, [
-          el("a", { class: "nav-ava", href: "settings.html", "aria-label": "Настройки игрока", html: ICON_USER }),
+          el("a", { class: "nav-ava", href: "settings.html", "aria-label": "Настройки игрока" }, [
+            el("img", { src: "art/avatar.png", alt: "", width: "44", height: "44" })
+          ]),
           el("a", { class: "nav-score", href: "stats.html", title: "Лучший результат за сессию" }, [
             el("span", { class: "st", html: ICON_STAR }),
             el("span", {}, [String(progress.highScore || 0)])
@@ -691,7 +692,7 @@
     myCode: myCode, readPlayerCode: readPlayerCode, restorePlayer: restorePlayer,
     saveSession: saveSession, loadSession: loadSession, clearSession: clearSession,
     project: project, insideCountry: insideCountry, nearCountry: nearCountry, insideAnyOther: insideAnyOther,
-    mapSvg: mapSvg, zoomMap: zoomMap, locator: locator, closeView: closeView,
+    mapSvg: mapSvg, zoomMap: zoomMap, locator: locator, closeView: closeView, regionIcon: regionIcon,
     population: population, popText: popText, countryCard: countryCard, verdict: verdict,
     currentDisplayName: currentDisplayName, pickPersona: pickPersona,
     submitToLeaderboard: submitToLeaderboard, fetchLeaderboard: fetchLeaderboard, hasServer: !!sb,

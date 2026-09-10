@@ -29,6 +29,16 @@
   window.SUPABASE_ANON_KEY = "sb_publishable_ivn0-52SCJ61gQ2vC7LyZw_QLvz6Ymy";
 </script>
 <style>
+.deco{position:absolute;pointer-events:none;user-select:none;z-index:0}
+.hero .wrap,.panel{position:relative;z-index:1}
+.d-plane{right:2%;top:6%;width:clamp(120px,15vw,240px);animation:float 7s ease-in-out infinite}
+.d-cloud1{left:4%;top:12%;width:clamp(90px,11vw,170px);opacity:.85}
+.d-cloud2{right:32%;bottom:16%;width:clamp(70px,8vw,120px);opacity:.7}
+.d-plant-l{left:-1%;bottom:6px;width:clamp(90px,12vw,180px)}
+.d-plant-r{right:-1%;bottom:0;width:clamp(90px,12vw,180px);transform:scaleX(-1)}
+.d-spark{left:46%;top:8%;width:26px;opacity:.9}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.panel-art{position:absolute;right:-14px;top:-46px;width:clamp(96px,10vw,140px);transform:rotate(6deg);pointer-events:none}
 .hero{position:relative;overflow:hidden;background:linear-gradient(180deg,#eaf3fe 0%,#f2f8ff 62%,#f4f9ff 100%)}
 .hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:40px;align-items:center;padding-top:32px;padding-bottom:12px}
 .hero h1{font-size:clamp(36px,5vw,66px);line-height:1.04;letter-spacing:-.045em;margin:0 0 20px}
@@ -50,17 +60,12 @@
 .hits small{margin-left:auto;color:var(--ink3);font-weight:700}
 
 .globe-slot{position:relative;justify-self:center;width:100%;max-width:520px;aspect-ratio:1}
-.globe{position:absolute;inset:6% 8%;border-radius:50%;overflow:hidden;background:#4aa8f0;
-  box-shadow:0 30px 70px rgba(24,90,170,.28), inset 0 0 0 10px rgba(255,255,255,.55)}
-.globe .mapbox{position:absolute;inset:0;border-radius:0;box-shadow:none;aspect-ratio:auto}
-.globe svg rect{fill:#4aa8f0}
-.globe svg path{fill:#79c56a;stroke:#5fb355;stroke-width:.6}
-.globe:after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
-  background:radial-gradient(120% 100% at 28% 18%,rgba(255,255,255,.42),rgba(255,255,255,0) 46%),
-             radial-gradient(90% 90% at 78% 88%,rgba(6,52,102,.28),rgba(6,52,102,0) 55%)}
-.pcard{position:absolute;background:#fff;border-radius:18px;padding:10px;box-shadow:var(--sh-lg);
+.globe{position:absolute;inset:4% 6%;z-index:1}
+.globe img{display:block;width:100%;height:100%;object-fit:contain;
+  filter:drop-shadow(0 26px 46px rgba(24,90,170,.28))}
+.pcard{position:absolute;z-index:2;background:#fff;border-radius:18px;padding:10px;box-shadow:var(--sh-lg);
   width:clamp(88px,24%,130px);transition:transform .18s ease}
-.pcard img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:11px;background:var(--sky)}
+.pcard img{width:100%;aspect-ratio:4/3;object-fit:contain;border-radius:11px;background:var(--sky)}
 .pcard span{display:block;text-align:center;font-weight:800;font-size:14px;color:var(--ink);padding:8px 2px 2px}
 .pcard:hover{transform:translateY(-4px) rotate(0deg)!important}
 .p1{left:-2%;top:34%;transform:rotate(-7deg)}
@@ -76,7 +81,7 @@
 .ico.b{background:var(--sky)} .ico.g{background:var(--green-l)}
 .ico.y{background:var(--gold-l)} .ico.v{background:var(--violet-l)}
 
-.start{background:#fff;padding:0 0 66px}
+.start{background:#fff;padding:56px 0 66px;position:relative;overflow:hidden}
 .panel{background:#fff;border-radius:34px;box-shadow:var(--sh-md);padding:36px 36px 40px}
 .panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:24px;flex-wrap:wrap}
 .panel-head h2{margin:0;font-size:clamp(26px,3vw,34px)}
@@ -93,8 +98,13 @@
 .m-green{background:var(--green-l)} .m-green .go{background:var(--green)} .m-green .art{background:#dcf1e5}
 .m-red{background:var(--red-l)} .m-red .go{background:var(--red)} .m-red .art{background:#fbdedb}
 .m-violet{background:var(--violet-l)} .m-violet .go{background:var(--violet)} .m-violet .art{background:#e6dcfd}
+.m-orange{background:var(--gold-l)} .m-orange .art{background:#ffeaba}
+.mode .go{background:none!important}
+.mode .go img,.mode .art img{display:block;width:100%;height:100%;object-fit:contain}
+.mode .art{background:none!important;overflow:visible}
 .modes.four{grid-template-columns:repeat(2,minmax(0,1fr))}
-.index-head{display:flex;justify-content:space-between;align-items:baseline;gap:20px;margin-bottom:20px}
+.index-head{display:flex;justify-content:space-between;align-items:baseline;gap:20px;margin-bottom:20px;flex-wrap:wrap}
+.index-head h2{white-space:nowrap}
 .index-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px}
 .hero-btns{margin-top:28px}
 
@@ -106,9 +116,13 @@
   .modes,.modes.four{grid-template-columns:1fr}
   .panel{padding:24px 20px 28px;border-radius:26px}
 }
+@media (max-width:900px){
+  .d-cloud1,.d-cloud2,.d-spark,.panel-art{display:none}
+  .d-plane{top:2%;width:110px}
+}
 @media (max-width:640px){
-  .perk p{font-size:15px} .perk .ico{width:44px;height:44px}
   .pcard{padding:7px} .pcard span{font-size:12px;padding-top:6px}
+  .d-plant-l,.d-plant-r{width:86px}
 }
 </style>
 
@@ -117,6 +131,10 @@
 <main id="app">
 
 <section class="hero">
+  <img class="deco d-cloud1" src="art/cloud.png" alt="">
+  <img class="deco d-cloud2" src="art/cloud.png" alt="">
+  <img class="deco d-plane" src="art/plane.png" alt="">
+  <img class="deco d-spark" src="art/sparkle.png" alt="">
   <div class="wrap">
     <div>
       <h1>Откройте атлас там, где вам интересно.</h1>
@@ -134,39 +152,42 @@
       <p class="resume" id="resume" hidden></p>
     </div>
     <div class="globe-slot">
-      <div class="globe" id="globe"></div>
-      <a class="pcard p3" href="country.html?iso=fr"><img src="flags/fr.svg" alt="Флаг Франции"><span>Франция</span></a>
-      <a class="pcard p2" href="country.html?iso=jp"><img src="flags/jp.svg" alt="Флаг Японии"><span>Япония</span></a>
-      <a class="pcard p1" href="country.html?iso=us"><img src="flags/us.svg" alt="Флаг США"><span>США</span></a>
-      <a class="pcard p4" href="country.html?iso=eg"><img src="flags/eg.svg" alt="Флаг Египта"><span>Египет</span></a>
+      <div class="globe"><img src="art/globe-big.png" alt="Глобус с политической картой мира" width="620" height="620"></div>
+      <a class="pcard p3" id="pc3"></a>
+      <a class="pcard p2" id="pc2"></a>
+      <a class="pcard p1" id="pc1"></a>
+      <a class="pcard p4" id="pc4"></a>
     </div>
   </div>
 </section>
 
 <section class="start">
+  <img class="deco d-plant-l" src="art/plant-a.png" alt="">
+  <img class="deco d-plant-r" src="art/plant-b.png" alt="">
   <div class="wrap">
     <div class="panel">
+      <img class="panel-art" src="art/note.png" alt="">
       <div class="panel-head"><h2>Три способа запоминать</h2></div>
       <div class="modes four">
         <a class="mode m-blue" href="play.html">
-          <span class="art"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2b7fff" stroke-width="2" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
+          <span class="art"><img src="art/compass.png" alt=""></span>
           <span><h3>Играть</h3><p>Столица вручную, флаг из полного списка, точка на карте. Три шага за раунд, комбо ×1.5 за три чистых страны подряд.</p></span>
-          <span class="go"><svg width="18" height="12" viewBox="0 0 24 16" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h19M15 2l6 6-6 6"/></svg></span>
+          <span class="go"><img src="art/arrow-blue.png" alt=""></span>
         </a>
-        <a class="mode m-red" href="flags.html">
-          <span class="art"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#e8523f" stroke-width="2" stroke-linejoin="round"><path d="M6 21V3M6 4.5h12l-2.5 4L18 12.5H6"/></svg></span>
+        <a class="mode m-orange" href="flags.html">
+          <span class="art"><img src="art/r-namerica.png" alt=""></span>
           <span><h3>Флаги</h3><p>Показываем флаг — вы пишете страну. Двадцать флагов занимают минут пять.</p></span>
-          <span class="go"><svg width="18" height="12" viewBox="0 0 24 16" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h19M15 2l6 6-6 6"/></svg></span>
+          <span class="go"><img src="art/arrow-orange.png" alt=""></span>
         </a>
         <a class="mode m-green" href="learn.html">
-          <span class="art"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1fa463" stroke-width="2" stroke-linejoin="round"><path d="M4 5.5h6a2.5 2.5 0 012.5 2.5v11A2.2 2.2 0 0010.5 17H4zM20 5.5h-6A2.5 2.5 0 0011.5 8v11A2.2 2.2 0 0113.5 17H20z"/></svg></span>
+          <span class="art"><img src="art/passport.png" alt=""></span>
           <span><h3>Карточки</h3><p>Обучение без таймера: одна карточка на страну — переверните, и там столица, население и факт о флаге.</p></span>
-          <span class="go"><svg width="18" height="12" viewBox="0 0 24 16" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h19M15 2l6 6-6 6"/></svg></span>
+          <span class="go"><img src="art/arrow-green.png" alt=""></span>
         </a>
         <a class="mode m-violet" href="board.html">
-          <span class="art"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"><path d="M7 4h10v6a5 5 0 01-10 0z"/><path d="M7 5H4v2a4 4 0 004 4M17 5h3v2a4 4 0 01-4 4M9 20h6M12 15v5"/></svg></span>
+          <span class="art"><img src="art/globe-stand.png" alt=""></span>
           <span><h3>Рейтинг недели <span class="tag">Новое</span></h3><p>Лучшая сессия за семь дней. Титул и номер присваиваются сами, без регистрации.</p></span>
-          <span class="go"><svg width="18" height="12" viewBox="0 0 24 16" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h19M15 2l6 6-6 6"/></svg></span>
+          <span class="go"><img src="art/arrow-violet.png" alt=""></span>
         </a>
       </div>
 
@@ -186,12 +207,14 @@
 CA.ready(function () {
   var el = CA.el;
 
-  var pins = [[2.35, 48.85], [31.24, 30.04], [28.98, 41.01], [3.4, 6.52]].map(function (p) {
-    var t = CA.project(p[0], p[1]);
-    return { x: t.x, y: t.y, r: 5, fill: "#e8523f", stroke: "#fff" };
+  // Четыре страны у глобуса меняются при каждом заходе.
+  var short = COUNTRIES.filter(function (c) { return c.n.length <= 12; });
+  CA.shuffle(short.length >= 4 ? short : COUNTRIES).slice(0, 4).forEach(function (c, i) {
+    var a = document.getElementById("pc" + (i + 1));
+    a.href = "country.html?iso=" + c.f;
+    a.appendChild(el("img", { src: CA.flagUrl(c.f), alt: "Флаг: " + c.n, loading: "lazy", decoding: "async" }));
+    a.appendChild(el("span", {}, [c.n]));
   });
-  document.getElementById("globe").appendChild(
-    CA.mapSvg({ view: { x: 372, y: 44, w: 336, h: 336 }, pins: pins, label: "Карта мира" }));
 
   var studied = CA.studiedCount("world");
   if (studied > 0) {

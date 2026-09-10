@@ -37,15 +37,15 @@ main{flex:1;}
 .nav .wrap{display:flex;align-items:center;gap:26px;min-height:84px;padding-top:10px;padding-bottom:10px;flex-wrap:wrap;}
 .nav-brand{display:flex;align-items:center;gap:12px;font-weight:900;font-size:23px;letter-spacing:-.03em;color:var(--ink);}
 .nav-brand:hover{color:var(--blue-d);}
-.nav-brand .mark{width:44px;height:44px;border-radius:50%;overflow:hidden;flex:none;background:#bfe3ff;box-shadow:0 4px 12px rgba(43,127,255,.32);}
-.nav-brand .mark svg{width:100%;height:100%;display:block;}
+.nav-brand .mark{width:44px;height:44px;flex:none;display:block;}
 .navlinks{display:flex;gap:24px;font-size:16px;flex-wrap:wrap;}
 .navlinks a{color:var(--ink2);font-weight:700;padding:5px 0;border-bottom:3px solid transparent;}
 .navlinks a:hover{color:var(--blue);}
 .navlinks a.on{color:var(--blue);border-bottom-color:var(--blue);}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
-.nav-ava{width:44px;height:44px;border-radius:50%;background:var(--ink);display:grid;place-items:center;flex:none;}
-.nav-ava:hover{background:var(--blue-d);}
+.nav-ava{width:44px;height:44px;border-radius:50%;display:block;flex:none;transition:transform .15s;}
+.nav-ava img{display:block;width:100%;height:100%;}
+.nav-ava:hover{transform:scale(1.06);}
 .nav-score{display:flex;align-items:center;gap:9px;background:var(--ink);color:#fff;font-weight:800;font-size:17px;padding:10px 19px 10px 12px;border-radius:999px;white-space:nowrap;}
 .nav-score:hover{background:var(--blue-d);color:#fff;}
 .nav-score .st{width:26px;height:26px;border-radius:50%;background:var(--gold);display:grid;place-items:center;flex:none;}
@@ -105,6 +105,8 @@ main{flex:1;}
 .tile:hover{transform:translateY(-3px);box-shadow:var(--sh-md);}
 .tile:hover h3{color:var(--blue-d);}
 .tile h3{font-size:24px;line-height:29px;}
+.ricon{width:46px;height:46px;display:block;flex:none;}
+.tile-head{display:flex;align-items:center;gap:14px;}
 .tile .meta{display:flex;justify-content:space-between;font-size:15px;color:var(--ink2);font-weight:700;margin-top:6px;}
 
 .tag{font-size:12px;line-height:16px;letter-spacing:.06em;text-transform:uppercase;font-weight:800;
@@ -159,7 +161,8 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
 .flagopts .fl.right{border-color:var(--good);background:var(--green-l);}
 .flagopts .fl.wrong{border-color:var(--wrong);background:var(--red-l);}
 
-.locator{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;}
+/* Карта мира и крупный план — друг под другом: так каждая крупнее и понятнее. */
+.locator{display:grid;grid-template-columns:1fr;gap:26px;max-width:760px;}
 .locator .kicker{margin-bottom:8px;}
 .locator .mapbox{margin-left:0;margin-right:0;width:100%;max-width:100%;border-radius:var(--r);}
 
@@ -227,6 +230,7 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
   .grid{gap:28px;}
   .nav-brand{font-size:19px;}
   .nav-brand .mark{width:38px;height:38px;}
+  .ricon{width:38px;height:38px;}
   .nav-score{font-size:15px;padding:9px 15px 9px 9px;}
   .nav-ava{width:40px;height:40px;}
   .lede{font-size:17px;line-height:27px;}

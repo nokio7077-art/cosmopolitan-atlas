@@ -31,7 +31,7 @@
 <script>
 CA.ready(function () {
   var el = CA.el, k = CA.kicker, app = document.getElementById("app");
-  var st = { view: "regions", region: null, queue: [], i: 0, value: "", done: false, ok: false, correct: 0, sizeKey: "10" };
+  var st = { view: "regions", region: null, queue: [], i: 0, value: "", done: false, ok: false, correct: 0 };
 
   function render() {
     app.innerHTML = "";
@@ -68,31 +68,16 @@ CA.ready(function () {
 
   function viewSetup() {
     var list = CA.regionCountries(st.region);
-    // Количество — это выбор, а не запуск: раунд начинается кнопкой внизу.
-    var sizes = [["10", "10 флагов", 10], ["20", "20 флагов", 20], ["all", "Весь регион (" + list.length + ")", list.length]];
-    var pick = sizes[0];
-    sizes.forEach(function (sz) { if (sz[0] === st.sizeKey) pick = sz; });
-
     return el("div", { class: "screen" }, [
       el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px" }, [
         el("a", { href: "#", onclick: function (e) { e.preventDefault(); st.view = "regions"; render(); } }, ["← Регионы"]),
         k(CA.regionName(st.region) + " · " + list.length + " стран")
       ]),
       el("h1", { class: "big", style: "font-size:clamp(32px,4.5vw,48px);margin-bottom:14px" }, ["Сколько флагов показать?"]),
-      el("p", { class: "lede", style: "margin:0 0 22px" }, ["Десять флагов — минуты на три, весь регион — полноценная тренировка."]),
-      el("div", { style: "margin-bottom:32px" }, [
-        k("Сколько флагов"),
-        el("div", { class: "row", style: "margin-top:10px" }, sizes.map(function (sz) {
-          return el("button", {
-            class: "btn" + (st.sizeKey === sz[0] ? " primary" : " ghost"), type: "button",
-            onclick: function () { st.sizeKey = sz[0]; render(); }
-          }, [sz[1]]);
-        }))
-      ]),
-      el("hr", { class: "hairline" }),
-      el("div", { class: "startbar" }, [
-        el("button", { class: "btn primary go", type: "button", onclick: function () { start(pick[2]); } }, ["Играть →"]),
-        el("span", { class: "startnote" }, [CA.regionName(st.region) + " · " + pick[2] + " флагов"])
+      el("div", { class: "row", style: "margin-top:26px" }, [
+        el("button", { class: "btn primary", type: "button", onclick: function () { start(10); } }, ["10 флагов"]),
+        el("button", { class: "btn", type: "button", onclick: function () { start(20); } }, ["20 флагов"]),
+        el("button", { class: "btn ghost", type: "button", onclick: function () { start(list.length); } }, ["Весь регион (" + list.length + ")"])
       ])
     ]);
   }

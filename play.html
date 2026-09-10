@@ -40,7 +40,7 @@ CA.ready(function () {
   var st = {
     view: "regions", region: null, queue: [], i: 0, round: null,
     score: 0, combo: 0, mistakes: {}, capital: "", submitted: false, sending: false, submitMsg: null,
-    difficulty: "easy", sizeKey: "10"
+    difficulty: "easy"
   };
 
   function render() {
@@ -93,10 +93,11 @@ CA.ready(function () {
           class: "tile", href: locked ? "premium.html" : "#",
           onclick: function (e) { if (locked) return; e.preventDefault(); st.region = key; st.view = "setup"; render(); }
         }, [
-          el("div", { style: "display:flex;align-items:baseline;gap:12px" }, [
+          el("div", { class: "tile-head" }, [
+            CA.regionIcon(key),
             el("h3", {}, [CA.regionName(key)]), locked ? el("span", { class: "tag" }, ["Премиум"]) : null
           ]),
-          el("div", { class: "meta" }, [el("span", {}, [done + "/" + list.length + " изучено"]), el("span", {}, [list.length + " стран"])]),
+          el("div", { class: "meta", style: "margin-top:12px" }, [el("span", {}, [done + "/" + list.length + " изучено"]), el("span", {}, [list.length + " стран"])]),
           CA.bar(Math.round(100 * done / Math.max(1, list.length)))
         ]);
       }))
@@ -105,16 +106,6 @@ CA.ready(function () {
 
   function viewSetup() {
     var list = CA.regionCountries(st.region);
-    // Раньше кнопка «10 стран» сразу уносила в игру, и передумать со сложностью
-    // было уже нельзя. Теперь и количество, и сложность — это выбор, а запускает
-    // раунд отдельная кнопка внизу.
-    var sizes = [["10", "10 стран", 10], ["20", "20 стран", 20], ["all", "Весь регион (" + list.length + ")", list.length]];
-    function chosen() {
-      for (var i = 0; i < sizes.length; i++) if (sizes[i][0] === st.sizeKey) return sizes[i];
-      return sizes[0];
-    }
-    var pick = chosen();
-
     return el("div", { class: "screen" }, [
       el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px" }, [
         el("a", { href: "#", onclick: function (e) { e.preventDefault(); st.view = "regions"; render(); } }, ["← Регионы"]),
@@ -135,31 +126,12 @@ CA.ready(function () {
           }, ["Сложно · ввести вручную"])
         ])
       ]),
-      el("div", { style: "margin-bottom:32px" }, [
-        k("Сколько стран"),
-        el("div", { class: "row", style: "margin-top:10px" }, sizes.map(function (sz) {
-          return el("button", {
-            class: "btn" + (st.sizeKey === sz[0] ? " primary" : " ghost"), type: "button",
-            onclick: function () { st.sizeKey = sz[0]; render(); }
-          }, [sz[1]]);
-        }))
-      ]),
-      el("hr", { class: "hairline" }),
-      el("div", { class: "startbar" }, [
-        el("button", { class: "btn primary go", type: "button", onclick: function () { start(st.region, pick[2]); } }, ["Играть →"]),
-        el("span", { class: "startnote" }, [
-          CA.regionName(st.region) + " · " + pick[2] + " " + countryWord(pick[2]) +
-          " · " + (st.difficulty === "easy" ? "лёгкий уровень" : "сложный уровень")
-        ])
+      el("div", { class: "row" }, [
+        el("button", { class: "btn primary", type: "button", onclick: function () { start(st.region, 10); } }, ["10 стран"]),
+        el("button", { class: "btn", type: "button", onclick: function () { start(st.region, 20); } }, ["20 стран"]),
+        el("button", { class: "btn ghost", type: "button", onclick: function () { start(st.region, list.length); } }, ["Весь регион (" + list.length + ")"])
       ])
     ]);
-  }
-  function countryWord(n) {
-    var t = n % 100, o = n % 10;
-    if (t > 10 && t < 20) return "стран";
-    if (o === 1) return "страна";
-    if (o > 1 && o < 5) return "страны";
-    return "стран";
   }
 
   function hud() {
