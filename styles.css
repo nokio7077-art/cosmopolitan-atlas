@@ -89,6 +89,24 @@ body.playing{background-image:linear-gradient(rgba(244,249,255,.62) 0,rgba(244,2
 @media (max-width:760px){
   body.playing{background-attachment:scroll;background-position:center 60px;}
 }
+/* Вопрос кладём на светлую карточку по центру экрана. Раньше он жался в
+   левый верхний угол, а всё остальное оставалось пустым небом — дело было не
+   в нехватке украшений, а в том, что содержимое занимало четверть экрана. */
+/* Карточку ставим по середине экрана: вопрос из четырёх строк, прижатый к
+   верхнему краю, оставлял под собой две трети пустого неба. Если шаг высокий
+   (карта, итог раунда) — блок просто растёт вниз, центрирование не мешает. */
+body.playing .screen{display:flex;align-items:center;min-height:calc(100vh - 140px);}
+@media (max-width:760px){
+  body.playing .screen{display:block;min-height:0;}
+}
+body.playing .screen > div{width:100%;background:rgba(255,255,255,.82);backdrop-filter:blur(6px);
+  border-radius:var(--r);box-shadow:var(--sh-md);
+  padding:clamp(20px,3vw,38px) clamp(18px,3vw,40px) clamp(24px,3.4vw,40px);
+  max-width:1000px;margin:0 auto;}
+@media (max-width:560px){
+  body.playing .screen > div{background:rgba(255,255,255,.88);border-radius:18px;
+    padding:18px 16px 22px;}
+}
 body.playing .site-footer{display:none;}
 body.playing .screen{padding-top:10px;}
 
@@ -223,8 +241,16 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
 .ask{font-weight:900;font-size:clamp(23px,3vw,36px);line-height:1.2;letter-spacing:-.03em;color:var(--ink);margin:0 0 22px;}
 .code{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(24px,4vw,36px);
   font-weight:700;letter-spacing:.12em;background:var(--sky);color:var(--ink);border-radius:16px;padding:12px 20px;}
-.options{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;max-width:660px;margin-top:10px;}
-.options .btn{text-align:left;border-radius:16px;}
+.options{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;max-width:760px;margin-top:10px;}
+/* Вариант ответа — главное, во что человек целится за партию, и мелкой
+   кнопке тут не место: увеличиваем до размера, в который легко попасть
+   пальцем, не глядя. */
+.options .btn{text-align:left;border-radius:18px;font-size:19px;line-height:26px;
+  padding:18px 24px;min-height:64px;}
+@media (max-width:560px){
+  .options{grid-template-columns:1fr;}
+  .options .btn{font-size:18px;padding:16px 20px;min-height:60px;}
+}
 /* После ответа варианты остаются на экране: верный — зелёный, ошибочный выбор — красный. */
 .options .btn.done{pointer-events:none;}
 .options .btn.right{border-color:var(--good);background:var(--green-l);color:var(--good-ink);font-weight:900;}
@@ -433,3 +459,58 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
 .repeat-note{margin:18px 0 0;font-size:15px;line-height:23px;font-weight:700;color:var(--n700);}
 /* Картинка под списком ошибок: она здесь для воздуха, а не ради разглядывания. */
 .endpic{width:min(100%,300px);margin:24px 0 0;}
+
+/* ── Движение ──────────────────────────────────────────────────────────────
+   Анимации здесь работают на понимание, а не на украшение: подтверждают, что
+   ответ принят, и показывают, где именно случилось изменение. Всё короткое —
+   от 0,18 до 0,45 с: длиннее начинает раздражать на второй десятой стране.
+   Тем, кто попросил систему поменьше двигать картинку, не показываем ничего:
+   для части людей движение на экране — не украшение, а головокружение. */
+@keyframes ca-pop{0%{transform:scale(1);}45%{transform:scale(1.06);}100%{transform:scale(1);}}
+@keyframes ca-shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-6px);}
+  40%{transform:translateX(5px);}60%{transform:translateX(-3px);}80%{transform:translateX(2px);}}
+@keyframes ca-rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+@keyframes ca-fade{from{opacity:0;}to{opacity:1;}}
+@keyframes ca-bump{0%{transform:scale(1);}35%{transform:scale(1.18);}100%{transform:scale(1);}}
+/* Поворот держим внутри кадров: общий ca-pop задаёт только scale и затирал бы
+   rotate, отчего галочка ложилась уголком. */
+@keyframes ca-tick{0%{transform:rotate(45deg) scale(.4);opacity:0;}
+  60%{transform:rotate(45deg) scale(1.12);opacity:1;}
+  100%{transform:rotate(45deg) scale(1);opacity:1;}}
+
+/* Верный ответ подпрыгивает, неверный вздрагивает — это читается быстрее цвета. */
+.options .btn.right,.flagopts .fl.right{animation:ca-pop .42s ease;}
+.options .btn.wrong,.flagopts .fl.wrong{animation:ca-shake .38s ease;}
+.answer{animation:ca-rise .3s ease both;}
+/* Галочка: прямоугольник выше, чем шире, из двух границ, повёрнутый на 45° —
+   квадрат давал бы уголок, а не «птичку». */
+.answer.ok .answer-word::after{content:"";display:inline-block;width:.3em;height:.58em;
+  margin:0 .1em 0 .34em;vertical-align:.1em;
+  border-right:.12em solid currentColor;border-bottom:.12em solid currentColor;
+  transform:rotate(45deg);animation:ca-tick .45s .08s ease both;}
+
+/* Карточка вопроса появляется движением снизу: видно, что шаг сменился. */
+body.playing .screen > div{animation:ca-rise .34s ease both;}
+
+/* Счёт в шапке подскакивает ровно тогда, когда изменился. */
+.gb-score.bumped{animation:ca-bump .45s ease;}
+
+/* Плитки и карточки чуть приподнимаются под курсором — на сайте это уже было
+   у режимов, доводим до остальных списков. */
+.tile,.li.clickable{transition:transform .15s ease,box-shadow .15s ease;}
+.tile:hover,.li.clickable:hover{transform:translateY(-2px);box-shadow:var(--sh-md);}
+
+/* «Не знаю» держим тише соседей: это выход, а не главное действие. */
+.btn.dunno{color:var(--n700);}
+.btn.dunno:hover{color:var(--ink);border-color:var(--n400);background:var(--sky);}
+
+/* Третье состояние ответа — не красное и не зелёное. */
+.answer.skip{background:var(--gold-l);}
+.answer.skip .answer-word{color:var(--gold-d);}
+
+@media (prefers-reduced-motion:reduce){
+  .options .btn.right,.options .btn.wrong,.flagopts .fl.right,.flagopts .fl.wrong,
+  .answer,body.playing .screen > div,.gb-score.bumped{animation:none;}
+  .answer.ok .answer-word::after{animation:none;opacity:1;}
+  .tile:hover,.li.clickable:hover{transform:none;}
+}

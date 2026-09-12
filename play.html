@@ -55,6 +55,7 @@ CA.ready(function () {
     CA.mount(node);
     CA.playMode(st.view === "round");
     CA.playBar(st.view === "round" ? roundBar() : null);
+    shownScore = st.score;
     // Пока идёт игра, храним снимок: с карточки страны человек должен вернуться
     // ровно туда, где остановился, а не в начало.
     if (st.view === "round" || st.view === "end") saveGame();
@@ -72,7 +73,8 @@ CA.ready(function () {
         iso: r.c.f, step: r.step, capOk: r.capOk, capDone: r.capDone, hint: r.hint,
         capOptions: r.capOptions, flagDone: r.flagDone, flagOk: r.flagOk, pick: r.pick,
         flagOptions: r.flagOptions ? r.flagOptions.map(function (c) { return c.f; }) : null,
-        mapDone: r.mapDone, mapOk: r.mapOk, mapWhy: r.mapWhy, aim: r.aim, click: r.click, target: r.target,
+        mapDone: r.mapDone, mapOk: r.mapOk, mapWhy: r.mapWhy,
+        capSkip: r.capSkip, flagSkip: r.flagSkip, mapSkip: r.mapSkip, aim: r.aim, click: r.click, target: r.target,
         points: r.points, mult: r.mult
       } : null
     });
@@ -93,7 +95,8 @@ CA.ready(function () {
       var c = CA.byIso(s.round.iso) || st.queue[st.i];
       var r = newRound(c);
       ["step", "capOk", "capDone", "hint", "capOptions", "flagDone", "flagOk", "pick",
-       "mapDone", "mapOk", "mapWhy", "aim", "click", "target", "points", "mult"].forEach(function (key) {
+       "mapDone", "mapOk", "mapWhy", "capSkip", "flagSkip", "mapSkip",
+       "aim", "click", "target", "points", "mult"].forEach(function (key) {
         if (s.round[key] !== undefined && s.round[key] !== null) r[key] = s.round[key];
       });
       if (s.round.flagOptions) r.flagOptions = s.round.flagOptions.map(CA.byIso).filter(Boolean);
@@ -236,6 +239,9 @@ CA.ready(function () {
   // Полоса хода в шапке. Раунд из трёх шагов, поэтому заполняем её и внутри
   // раунда: иначе она стояла бы на месте, пока человек отвечает на три вопроса.
   var STEP_PART = { capital: 0, flag: 1 / 3, map: 2 / 3, summary: 1 };
+  // Счёт в шапке подскакивает только когда он реально вырос: анимация на каждой
+  // перерисовке превратилась бы в мельтешение.
+  var shownScore = 0;
   function roundBar() {
     var n = st.queue.length, r = st.round || {};
     var part = STEP_PART[r.step] != null ? STEP_PART[r.step] : 0;
@@ -244,7 +250,8 @@ CA.ready(function () {
       aria: "Раунд " + (st.i + 1) + " из " + n,
       ratio: n ? (st.i + part) / n : 0,
       combo: st.combo >= 3 ? "×1.5" : null,
-      score: st.score
+      score: st.score,
+      bump: st.score > shownScore
     });
   }
 
@@ -253,6 +260,13 @@ CA.ready(function () {
     var r = st.round;
     box.appendChild(r.step === "capital" ? stepCapital(r) : r.step === "flag" ? stepFlag(r) : r.step === "map" ? stepMap(r) : stepSummary(r));
     return box;
+  }
+
+  // «Не знаю» — честный выход вместо тыка наугад. Очков не даёт и в «Стоит
+  // повторить» страну всё равно кладёт: не помнишь — значит, стоит вернуться.
+  // Но и красным не ругает: признаться — не то же самое, что ошибиться.
+  function dunno(cb) {
+    return el("button", { class: "btn ghost dunno", type: "button", onclick: cb }, ["Не знаю"]);
   }
 
   function stepCapital(r) {
@@ -282,13 +296,17 @@ CA.ready(function () {
           }
         }, [opt]);
       })));
+      if (!r.capDone) box.appendChild(el("div", { class: "row", style: "margin-top:14px" }, [
+        dunno(function () { st.capital = ""; r.capDone = true; r.capOk = false; r.capSkip = true; render(); })
+      ]));
     } else if (!r.capDone) {
       var input = el("input", { class: "input", id: "cap", type: "text", placeholder: "Введите название", autocomplete: "off", style: "margin-top:10px;font-size:20px",
         oninput: function (e) { st.capital = e.target.value; },
         onkeydown: function (e) { if (e.key === "Enter") submitCap(); } });
       box.appendChild(el("div", { class: "row", style: "align-items:flex-end;max-width:640px" }, [
         el("div", { class: "field", style: "flex:1;min-width:200px" }, [el("label", { class: "kicker", for: "cap" }, ["Столица"]), input]),
-        el("button", { class: "btn primary", type: "button", onclick: submitCap }, ["Ответить"])
+        el("button", { class: "btn primary", type: "button", onclick: submitCap }, ["Ответить"]),
+        dunno(function () { st.capital = ""; r.capDone = true; r.capOk = false; r.capSkip = true; render(); })
       ]));
       if (r.hint) box.appendChild(el("p", { class: "verdict", style: "margin:16px 0 0" }, ["Начинается на «" + r.hint + "…»"]));
       else if (CA.hintsLeft() > 0) box.appendChild(el("p", { style: "margin:18px 0 0;font-size:16px;color:var(--n700)" }, [
@@ -300,8 +318,11 @@ CA.ready(function () {
     }
     if (r.capDone) {
       var said = (st.capital || "").trim();
-      box.appendChild(CA.verdict(r.capOk, r.capOk
+      box.appendChild(CA.verdict(r.capOk ? true : (r.capSkip ? "skip" : false), r.capOk
         ? ["Столица — ", el("b", { style: "font-weight:600" }, [r.c.c]), ". Плюс 10 очков."]
+        : r.capSkip
+        ? ["Это ", el("b", { style: "font-weight:600" }, [r.c.c]),
+           ". Честное «не знаю» полезнее случайного тыка: страна ушла в «Стоит повторить», и вы встретите её снова."]
         : [said ? "Ваш ответ — «" + said + "»." : "Ответа не было.",
            " Правильный ответ — ", el("b", { style: "font-weight:600" }, [r.c.c]),
            ". Страну добавили в список «Стоит повторить» — он ждёт в конце сессии."]));
@@ -335,9 +356,16 @@ CA.ready(function () {
       var list = COUNTRIES.slice().sort(function (a, b) { return a.n.localeCompare(b.n, "ru"); });
       box.appendChild(el("div", { class: "flags" }, list.map(function (c) { return flagButton(c, "fl"); })));
     }
+    if (!r.flagDone) {
+      box.appendChild(el("div", { class: "row", style: "margin-top:16px" }, [
+        dunno(function () { r.flagDone = true; r.flagOk = false; r.flagSkip = true; r.pick = null; render(); })
+      ]));
+    }
     if (r.flagDone) {
-      box.appendChild(CA.verdict(r.flagOk, r.flagOk
+      box.appendChild(CA.verdict(r.flagOk ? true : (r.flagSkip ? "skip" : false), r.flagOk
         ? ["Это её флаг. Плюс 10 очков."]
+        : r.flagSkip
+        ? ["Вот он, обведён зелёным. Посмотрите на него пару секунд — в следующий раз узнаете."]
         : ["Верный флаг обведён зелёным, ваш выбор — красным. Посмотрите на него пару секунд: в следующий раз узнаете."]));
       box.appendChild(el("button", { class: "btn primary", type: "button", onclick: function () { r.step = "map"; render(); } }, ["Дальше · карта"]));
     }
@@ -366,6 +394,13 @@ CA.ready(function () {
       if (!r.aim) return;
       submitMap(r, r.aim);
     } }, ["Это здесь · ответить"]);
+    var skipMap = dunno(function () {
+      r.mapDone = true; r.mapOk = false; r.mapSkip = true; r.click = null;
+      r.picker.setMarks([{ x: CA.project(r.c.lng, r.c.lat).x, y: CA.project(r.c.lng, r.c.lat).y, r: 8, fill: "#1f8a4c", stroke: "#fff" }]);
+      r.picker.setHighlight(r.c.f, "#a8ddba");
+      r.picker.stopPicking();
+      render();
+    });
     var AIMED = "Метка стоит. Передвиньте её нажатием в другом месте или отвечайте.";
     var note = el("p", { style: "margin:12px 0 0;font-size:16px;color:var(--n800)" }, [
       r.aim ? AIMED : "Метку можно двигать сколько угодно: ответ засчитается только по кнопке."
@@ -386,9 +421,12 @@ CA.ready(function () {
         "Маленькую страну удобнее искать приближённой: кнопки + и − под картой, двойное нажатие по нужному месту, колесо мыши или щипок двумя пальцами. Приближённую карту можно двигать перетаскиванием."
       ]));
       box.appendChild(note);
-      box.appendChild(el("div", { style: "margin-top:16px" }, [answer]));
+      box.appendChild(el("div", { class: "row", style: "margin-top:16px" }, [answer, skipMap]));
     } else {
-      box.appendChild(CA.verdict(r.mapOk, r.mapOk ? hitText(r) : missText(r)));
+      box.appendChild(CA.verdict(r.mapOk ? true : (r.mapSkip ? "skip" : false),
+        r.mapOk ? hitText(r) : r.mapSkip
+        ? ["Зелёная точка — верное место, страна подсвечена на карте. Приблизьте и посмотрите, с чем она граничит: так запоминается лучше всего."]
+        : missText(r)));
       box.appendChild(el("button", { class: "btn primary", type: "button", onclick: finish }, ["Итог раунда"]));
     }
     return box;

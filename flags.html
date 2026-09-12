@@ -121,14 +121,20 @@ CA.ready(function () {
         onkeydown: function (e) { if (e.key === "Enter") submit(); } });
       right.appendChild(el("div", { class: "row", style: "align-items:flex-end" }, [
         el("div", { class: "field", style: "flex:1;min-width:200px" }, [el("label", { class: "kicker", for: "cn" }, ["Страна"]), input]),
-        el("button", { class: "btn primary", type: "button", onclick: submit }, ["Ответить"])
+        el("button", { class: "btn primary", type: "button", onclick: submit }, ["Ответить"]),
+        // Честное «не знаю» вместо тыка наугад: очков не даёт, но и не ругает.
+        el("button", { class: "btn ghost dunno", type: "button", onclick: function () {
+          if (st.done) return;
+          st.value = ""; st.done = true; st.ok = false; st.skip = true; render();
+        } }, ["Не знаю"])
       ]));
       right.appendChild(el("p", { style: "margin-top:18px;font-size:16px;color:var(--n800)" }, ["Небольшие опечатки принимаются."]));
       setTimeout(function () { var i = document.getElementById("cn"); if (i) { i.value = st.value; i.focus(); } }, 0);
     } else {
-      right.appendChild(el("p", { class: "verdict " + (st.ok ? "ok" : "bad"), style: "margin:0 0 14px" }, [
-        st.ok ? "Верно — " + c.n + "." : "Это " + c.n + ", столица " + c.c + "."
-      ]));
+      right.appendChild(CA.verdict(st.ok ? true : (st.skip ? "skip" : false),
+        st.ok ? ["Верно — " + c.n + "."]
+        : st.skip ? ["Это " + c.n + ", столица " + c.c + ". Посмотрите на флаг пару секунд — в следующий раз узнаете."]
+        : ["Это " + c.n + ", столица " + c.c + "."]));
       if (FLAG_FACTS[c.f]) right.appendChild(el("div", { class: "fact", style: "margin-bottom:22px" }, [k("О флаге", "ac"), el("p", {}, [FLAG_FACTS[c.f]])]));
       right.appendChild(el("div", { class: "row" }, [
         el("button", { class: "btn primary", type: "button", onclick: next }, [st.i + 1 >= st.queue.length ? "Итоги" : "Следующий флаг"]),
@@ -145,13 +151,13 @@ CA.ready(function () {
   function submit() {
     if (st.done) return;
     st.done = true;
-    st.ok = CA.fuzzy(st.value, st.queue[st.i].n);
+    st.ok = CA.fuzzy(st.value, st.queue[st.i].n); st.skip = false;
     if (st.ok) st.correct++;
     render();
   }
   function next() {
     if (st.i + 1 >= st.queue.length) { st.view = "end"; render(); return; }
-    st.i++; st.value = ""; st.done = false; st.ok = false; render();
+    st.i++; st.value = ""; st.done = false; st.ok = false; st.skip = false; render();
   }
 
   function viewEnd() {
