@@ -34,9 +34,13 @@
 <script>
 CA.ready(function () {
   var el = CA.el;
-  CA.mount(el("div", { class: "screen prose", style: "max-width:760px" }, [
+  // Картинка слева, текст справа; на телефоне картинка уходит под заголовок.
+  var art = el("img", { class: "pagepic", src: "art/about.webp", alt: "",
+    width: "860", height: "573", decoding: "async" });
+  CA.mount(el("div", { class: "screen prose withpic", style: "max-width:960px" }, [
     el("a", { href: "index.html", style: "font-size:15px" }, ["← Вернуться к игре"]),
     el("h1", { class: "big", style: "font-size:clamp(30px,4vw,44px);margin:18px 0 20px" }, ["О проекте"]),
+    art,
     el("p", {}, [el("b", { style: "font-weight:600" }, ["Cosmopolitan — Атлас памяти"]), " — независимый образовательный проект: викторина для проверки и тренировки знаний географии — стран, столиц, флагов и их расположения на карте мира."]),
     el("p", {}, ["Сайт не собирает и не хранит на сервере никаких персональных данных пользователей. Весь игровой прогресс сохраняется локально в браузере устройства. В общем рейтинге недели игроки участвуют под автоматически присвоенным титулом и номером (например, «Штурман №12») — без имён и без регистрации."]),
     el("p", {}, ["По вопросам, замечаниям или предложениям можно написать на почту: ", el("a", { href: "mailto:cosmopolitanatlas@gmail.com" }, ["cosmopolitanatlas@gmail.com"])]),
