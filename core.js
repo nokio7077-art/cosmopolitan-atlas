@@ -354,10 +354,10 @@
     }
     return out;
   }
-  // В контурах есть земли, которых нет среди 192 стран игры. В ответ они не
+  // В контурах есть земли, которых нет среди 193 стран и территорий игры. В ответ они не
   // годятся, но сказать человеку, куда он попал, надо честно.
   var TERRITORIES = {
-    eh: "Западная Сахара", fk: "Фолклендские острова", gl: "Гренландия",
+    eh: "Западная Сахара", fk: "Фолклендские острова",
     tf: "Французские южные территории", pr: "Пуэрто-Рико", ps: "Палестина",
     nc: "Новая Каледония", tw: "Тайвань", aq: "Антарктида", xk: "Косово"
   };
@@ -1079,14 +1079,30 @@
   }
   function chrome() {
     var here = (location.pathname.split("/").pop() || "index.html");
-    var links = el("nav", { class: "navlinks" }, NAV.map(function (item) {
+    var links = el("nav", { class: "navlinks", id: "navlinks" }, NAV.map(function (item) {
       return el("a", { href: item[0], class: here === item[0] ? "on" : "" }, [item[1]]);
     }));
+    // На телефоне шесть ссылок занимали два ряда и 233 точки — весь первый
+    // экран уходил на шапку. Прячем их за кнопкой; на широком экране кнопки
+    // нет, меню как было.
+    var burger = el("button", {
+      class: "navtoggle", type: "button", "aria-label": "Меню", "aria-expanded": "false",
+      "aria-controls": "navlinks",
+      html: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="2.4" stroke-linecap="round" aria-hidden="true">' +
+        '<path d="M4 7h16M4 12h16M4 17h16"/></svg>'
+    });
+    burger.addEventListener("click", function () {
+      var on = header.classList.toggle("menuopen");
+      burger.setAttribute("aria-expanded", on ? "true" : "false");
+    });
+
     var header = el("header", { class: "nav" }, [
       el("div", { class: "wrap" }, [
         el("a", { class: "nav-brand", href: "index.html" }, [brandMark(), "Cosmopolitan Atlas"]),
         links,
         el("div", { class: "nav-right" }, [
+          burger,
           el("a", {
             class: "nav-ava", href: "settings.html",
             "aria-label": progress.playerTitle ? ("Профиль · " + progress.playerTitle) : "Настройки игрока",
@@ -1103,7 +1119,7 @@
 
     var footer = el("footer", { class: "site-footer" }, [
       el("div", { class: "wrap" }, [
-        el("span", {}, ["Cosmopolitan — атлас памяти. 192 страны, столицы и флаги."]),
+        el("span", {}, ["Cosmopolitan — атлас памяти. 193 страны и территории, столицы и флаги."]),
         el("span", {}, [el("a", { href: "about.html" }, ["О проекте"]), " · ", el("a", { href: "privacy.html" }, ["Политика конфиденциальности"])])
       ])
     ]);

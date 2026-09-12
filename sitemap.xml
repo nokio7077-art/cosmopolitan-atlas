@@ -480,6 +480,12 @@
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
+<url>
+    <loc>https://cosmopolitan-atlas.online/country.html?iso=gl</loc>
+    <lastmod>2026-09-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
   <url>
     <loc>https://cosmopolitan-atlas.online/country.html?iso=qa</loc>
     <lastmod>2026-09-10</lastmod>

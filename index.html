@@ -17,14 +17,14 @@
 <meta property="og:site_name" content="Cosmopolitan — атлас памяти">
 <meta property="og:locale" content="ru_RU">
 <meta property="og:title" content="Квиз по географии онлайн: столицы, флаги и карта мира — Cosmopolitan">
-<meta property="og:description" content="Бесплатный тренажёр по географии: угадывайте столицы, узнавайте страны по флагам и находите их на карте мира. 192 страны, рейтинг недели, без регистрации.">
+<meta property="og:description" content="Бесплатный тренажёр по географии: угадывайте столицы, узнавайте страны по флагам и находите их на карте мира. 193 страны и территории, рейтинг недели, без регистрации.">
 <meta property="og:url" content="https://cosmopolitan-atlas.online/">
 <meta property="og:image" content="https://cosmopolitan-atlas.online/og-cover.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <title>Квиз по географии онлайн: столицы, флаги и карта мира — Cosmopolitan</title>
-<meta name="description" content="Бесплатный тренажёр по географии: угадывайте столицы, узнавайте страны по флагам и находите их на карте мира. 192 страны, рейтинг недели, без регистрации.">
+<meta name="description" content="Бесплатный тренажёр по географии: угадывайте столицы, узнавайте страны по флагам и находите их на карте мира. 193 страны и территории, рейтинг недели, без регистрации.">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js" integrity="sha384-CLZeq1dk8+Uzrs7TVvBUdlFoV5F0DMqgRoeHa8g5wJcuPe5SkVfEvdxB0ZuzlnBQ" crossorigin="anonymous"></script>
 <script>
@@ -123,9 +123,32 @@
   .d-cloud1,.d-cloud2,.d-spark,.panel-art{display:none}
   .d-plane{top:2%;width:110px}
 }
+/* Самолёт налезал на заголовок: теперь текст идёт первым и занимает всю
+   ширину, так что украшению там места нет. */
+@media (max-width:760px){
+  .d-plane{display:none}
+}
 @media (max-width:640px){
   .pcard{padding:7px} .pcard span{font-size:12px;padding-top:6px}
   .d-plant-l,.d-plant-r{width:86px}
+}
+/* На телефоне глобус стоял первым, и человек, открывший ссылку из чата, видел
+   красивую картинку, а заголовок с кнопкой уезжали за нижний край. Ссылка в
+   чате живёт секунд десять, второго шанса объяснить, что это за сайт, нет —
+   поэтому сначала текст и кнопка, картинка после них и поменьше. */
+@media (max-width:760px){
+  .globe-slot{order:0;max-width:300px;margin-top:6px}
+  .hero .wrap{padding-top:10px;gap:18px}
+  .hero h1{font-size:clamp(28px,7.4vw,38px);margin-bottom:12px}
+  .hero .lede{font-size:16px;line-height:24px;margin-bottom:18px}
+  /* Поиск по странам ниже кнопок: сначала «поиграть», потом «посмотреть». */
+  .finder{order:2;margin-top:20px}
+  .hero-btns{margin-top:18px}
+  .hero .wrap > div:first-child{display:flex;flex-direction:column}
+  .hero .wrap > div:first-child > h1{order:0}
+  .hero .wrap > div:first-child > .lede{order:1}
+  .hero .wrap > div:first-child > .hero-btns{order:1}
+  .hero .wrap > div:first-child > .resume{order:3}
 }
 </style>
 
