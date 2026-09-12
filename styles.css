@@ -459,3 +459,58 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
 .repeat-note{margin:18px 0 0;font-size:15px;line-height:23px;font-weight:700;color:var(--n700);}
 /* Картинка под списком ошибок: она здесь для воздуха, а не ради разглядывания. */
 .endpic{width:min(100%,300px);margin:24px 0 0;}
+
+/* ── Движение ──────────────────────────────────────────────────────────────
+   Анимации здесь работают на понимание, а не на украшение: подтверждают, что
+   ответ принят, и показывают, где именно случилось изменение. Всё короткое —
+   от 0,18 до 0,45 с: длиннее начинает раздражать на второй десятой стране.
+   Тем, кто попросил систему поменьше двигать картинку, не показываем ничего:
+   для части людей движение на экране — не украшение, а головокружение. */
+@keyframes ca-pop{0%{transform:scale(1);}45%{transform:scale(1.06);}100%{transform:scale(1);}}
+@keyframes ca-shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-6px);}
+  40%{transform:translateX(5px);}60%{transform:translateX(-3px);}80%{transform:translateX(2px);}}
+@keyframes ca-rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+@keyframes ca-fade{from{opacity:0;}to{opacity:1;}}
+@keyframes ca-bump{0%{transform:scale(1);}35%{transform:scale(1.18);}100%{transform:scale(1);}}
+/* Поворот держим внутри кадров: общий ca-pop задаёт только scale и затирал бы
+   rotate, отчего галочка ложилась уголком. */
+@keyframes ca-tick{0%{transform:rotate(45deg) scale(.4);opacity:0;}
+  60%{transform:rotate(45deg) scale(1.12);opacity:1;}
+  100%{transform:rotate(45deg) scale(1);opacity:1;}}
+
+/* Верный ответ подпрыгивает, неверный вздрагивает — это читается быстрее цвета. */
+.options .btn.right,.flagopts .fl.right{animation:ca-pop .42s ease;}
+.options .btn.wrong,.flagopts .fl.wrong{animation:ca-shake .38s ease;}
+.answer{animation:ca-rise .3s ease both;}
+/* Галочка: прямоугольник выше, чем шире, из двух границ, повёрнутый на 45° —
+   квадрат давал бы уголок, а не «птичку». */
+.answer.ok .answer-word::after{content:"";display:inline-block;width:.3em;height:.58em;
+  margin:0 .1em 0 .34em;vertical-align:.1em;
+  border-right:.12em solid currentColor;border-bottom:.12em solid currentColor;
+  transform:rotate(45deg);animation:ca-tick .45s .08s ease both;}
+
+/* Карточка вопроса появляется движением снизу: видно, что шаг сменился. */
+body.playing .screen > div{animation:ca-rise .34s ease both;}
+
+/* Счёт в шапке подскакивает ровно тогда, когда изменился. */
+.gb-score.bumped{animation:ca-bump .45s ease;}
+
+/* Плитки и карточки чуть приподнимаются под курсором — на сайте это уже было
+   у режимов, доводим до остальных списков. */
+.tile,.li.clickable{transition:transform .15s ease,box-shadow .15s ease;}
+.tile:hover,.li.clickable:hover{transform:translateY(-2px);box-shadow:var(--sh-md);}
+
+/* «Не знаю» держим тише соседей: это выход, а не главное действие. */
+.btn.dunno{color:var(--n700);}
+.btn.dunno:hover{color:var(--ink);border-color:var(--n400);background:var(--sky);}
+
+/* Третье состояние ответа — не красное и не зелёное. */
+.answer.skip{background:var(--gold-l);}
+.answer.skip .answer-word{color:var(--gold-d);}
+
+@media (prefers-reduced-motion:reduce){
+  .options .btn.right,.options .btn.wrong,.flagopts .fl.right,.flagopts .fl.wrong,
+  .answer,body.playing .screen > div,.gb-score.bumped{animation:none;}
+  .answer.ok .answer-word::after{animation:none;opacity:1;}
+  .tile:hover,.li.clickable:hover{transform:none;}
+}

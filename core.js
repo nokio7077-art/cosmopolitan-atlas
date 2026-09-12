@@ -719,10 +719,15 @@
   }
 
   // Ответ игроку: крупное «Верно» или «Неверно» и строка о том, что это значит.
+  // ok: true — верно, false — неверно, "skip" — человек честно сказал «не знаю».
+  // Третье состояние нарочно не красное: признаться, что не помнишь, — не ошибка
+  // того же сорта, что и пальцем в небо, и ругать за это нечем.
   function verdict(ok, note) {
     var kids = Object.prototype.toString.call(note) === "[object Array]" ? note : [note];
-    return el("div", { class: "answer " + (ok ? "ok" : "bad") }, [
-      el("div", { class: "answer-word" }, [ok ? "Верно" : "Неверно"]),
+    var kind = ok === "skip" ? "skip" : (ok ? "ok" : "bad");
+    var word = kind === "skip" ? "Не беда" : (kind === "ok" ? "Верно" : "Неверно");
+    return el("div", { class: "answer " + kind }, [
+      el("div", { class: "answer-word" }, [word]),
       el("p", { class: "answer-note" }, kids)
     ]);
   }
@@ -750,7 +755,7 @@
       }, [el("i", { style: "width:" + pct + "%" })])
     ];
     if (o.combo) items.push(el("span", { class: "gb-combo" }, [o.combo]));
-    if (o.score != null) items.push(el("span", { class: "gb-score" }, [
+    if (o.score != null) items.push(el("span", { class: "gb-score" + (o.bump ? " bumped" : "") }, [
       el("span", { class: "st", html: ICON_STAR }), String(o.score)
     ]));
     items.push(el("a", {
