@@ -13,7 +13,7 @@
    Открыть сайт: ?peek=shokoladki  ·  снова видеть заглушку: ?peek=off */
 (function () {
   "use strict";
-  var SHOKOLADKI = false;
+  var SHOKOLADKI = true;
   var PEEK = "shokoladki";
   var KEY = "caPeek";
   var PAGE = "maintenance.html";
