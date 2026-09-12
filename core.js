@@ -837,6 +837,8 @@
     var files = canShareFiles();
     var note = el("span", { class: "sharenote" }, []);
     var blob = null, dataUrl = null, drawing = false, pending = null;
+    // Текст и кнопки собираем в отдельную колонку: справа от них встаёт
+    // картинка, а на узком экране она просто уходит вниз.
     var wrap = el("div", { class: "sharebar" }, [kicker("Поделиться результатом")]);
 
     // Открытку готовим заранее и молча — на странице её быть не должно. Заранее
@@ -871,51 +873,35 @@
       }).catch(function () {});
     }
 
-    // Логотипы Телеграма и ВК узнаются без подписей, а места занимают втрое
-    // меньше. Ссылку в них передаём обычной формой самой соцсети, без чужих
-    // скриптов: и приватнее, и работает даже с блокировщиками. Картинку такая
-    // форма принять не умеет — её отправляет системное «Поделиться».
-    function socialBtn(href, icon, name) {
-      return el("a", { class: "btn social", href: href, target: "_blank", rel: "noopener noreferrer", title: name, "aria-label": name }, [
-        el("img", { src: "art/" + icon + ".webp", alt: "", width: "30", height: "30", loading: "lazy" })
-      ]);
-    }
-    var tg = socialBtn("https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text), "tg", "Отправить ссылку в Telegram");
-    var vk = socialBtn("https://vk.com/share.php?noparse=true&url=" + encodeURIComponent(url) +
-      "&title=" + encodeURIComponent(opts.title || "Cosmopolitan — атлас памяти") +
-      "&description=" + encodeURIComponent(text) +
-      "&image=" + encodeURIComponent(SITE + "og-cover.jpg"), "vk", "Отправить ссылку во ВКонтакте");
-
     var row = el("div", { class: "row" }, []);
     if (files) {
-      // Значок ставим первым: он единственный отправляет саму открытку.
+      // Значок системного «Поделиться» — единственный, кто отправляет саму
+      // открытку. Кнопки Телеграма и ВК отсюда убраны: их форма принимает
+      // только ссылку, картинку ей не передать, и люди справедливо считали
+      // это поломкой.
       var shareBtn = el("button", {
         class: "btn primary iconbtn", type: "button",
         "aria-label": "Поделиться открыткой", title: "Поделиться открыткой", html: ICON_SHARE
       });
       shareBtn.addEventListener("click", doShare);
       row.appendChild(shareBtn);
-    }
-    row.appendChild(tg);
-    row.appendChild(vk);
-    if (files) {
       wrap.appendChild(row);
       wrap.appendChild(el("p", { class: "sharehint" }, [
-        "Открытку с вашим результатом отправит значок слева — она откроется в списке приложений. Telegram и ВКонтакте пошлют ссылку с карточкой сайта: свой файл их форма принять не умеет."
+        "Откроется список приложений — Telegram, ВКонтакте и куда угодно ещё. Уйдёт открытка с вашим счётом, а не просто ссылка."
       ]));
     } else {
-      // На компьютере файл через браузер не передать: там открытку сохраняем,
-      // а к сообщению её остаётся приложить руками.
+      // На компьютере файл через браузер не передать: сохраняем открытку, а
+      // к сообщению её остаётся приложить руками.
       row.appendChild(el("button", {
-        class: "btn ghost", type: "button",
+        class: "btn primary", type: "button",
         onclick: function () {
           note.textContent = "Готовим картинку…";
           prepare(function () { saveCard(); note.textContent = "Картинка сохранена — приложите её к сообщению."; });
         }
-      }, ["Сохранить картинку"]));
+      }, ["Сохранить открытку"]));
       wrap.appendChild(row);
       wrap.appendChild(el("p", { class: "sharehint" }, [
-        "Telegram и ВКонтакте откроют форму со ссылкой и карточкой сайта. Открытку с вашим результатом сохраните кнопкой справа и приложите к сообщению."
+        "Картинка со счётом сохранится на компьютер — её останется приложить к сообщению."
       ]));
     }
     wrap.appendChild(note);
@@ -924,7 +910,11 @@
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { prepare(); }, function () { prepare(); });
       else prepare();
     }
-    return wrap;
+    if (!opts.art) return wrap;
+    return el("div", { class: "sharewrap" }, [wrap, el("img", {
+      class: "shareart", src: opts.art, alt: "", loading: "lazy", decoding: "async",
+      width: "480", height: "480"
+    })]);
   }
 
   /* --- рейтинг --- */

@@ -378,3 +378,24 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
 .pausepage .btn.primary{background:var(--blue-d);border-color:var(--blue-d);color:#fff;
   box-shadow:0 10px 24px rgba(15,47,94,.28);}
 .pausepage .btn.primary:hover{background:var(--ink);border-color:var(--ink);color:#fff;}
+
+/* Картинка рядом с текстом на страницах «О проекте» и «Политика». Текст
+   обтекает её справа: колонки здесь были бы лишними — заголовок должен
+   остаться во всю ширину, а абзацы сами обойдут картинку. */
+/* На телефоне картинку держим скромной и по центру: во всю ширину она
+   отодвигала бы текст на целый экран, а на эти страницы приходят читать. */
+.pagepic{display:block;width:min(100%,320px);height:auto;border-radius:var(--r);
+  box-shadow:var(--sh-md);margin:0 auto 20px;}
+@media (min-width:760px){
+  .prose.withpic .pagepic{float:left;width:min(38%,360px);margin:4px 30px 20px 0;}
+  /* Обычный предел строки в 68 знаков рядом с картинкой оставлял бы колонку
+     шириной в пару слов — здесь строку ограничивает сама картинка. */
+  .prose.withpic p,.prose.withpic li{max-width:none;}
+  /* Подвал раздела не должен заезжать под картинку, если текст кончился раньше. */
+  .prose.withpic::after{content:"";display:block;clear:both;}
+}
+
+/* Итог игры: слева кнопка «поделиться», справа картинка. */
+.sharewrap{display:flex;align-items:center;gap:clamp(16px,3vw,32px);flex-wrap:wrap;margin-top:30px;}
+.sharewrap .sharebar{flex:1 1 260px;min-width:0;margin-top:0;}
+.shareart{flex:0 0 auto;width:clamp(130px,26vw,200px);height:auto;border-radius:var(--r);display:block;}
