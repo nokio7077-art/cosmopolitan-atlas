@@ -126,11 +126,11 @@ CA.ready(function () {
   function render() {
     app.innerHTML = "";
     var me = CA.currentDisplayName();
-    var titles = el("div", { style: "display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 20px;margin-top:16px" },
+    var titles = el("div", { style: "display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px 14px;margin-top:16px" },
       CA.PERSONAS.map(function (title) {
         var active = p.playerTitle === title;
         return el("button", {
-          class: "btn" + (active ? " primary" : " ghost"), type: "button", style: "text-align:left",
+          class: "btn personabtn" + (active ? " primary" : " ghost"), type: "button",
           onclick: function (e) {
             var b = e.currentTarget; b.disabled = true;
             CA.pickPersona(title, function (ok, err) {
@@ -138,7 +138,10 @@ CA.ready(function () {
               render();
             });
           }
-        }, [title]);
+        }, [
+          el("img", { src: CA.personaAvatar(title), alt: "", width: "38", height: "38", loading: "lazy", decoding: "async" }),
+          el("span", {}, [title])
+        ]);
       }));
 
     CA.mount(el("div", { class: "screen", style: "max-width:760px" }, [
