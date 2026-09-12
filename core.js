@@ -911,10 +911,13 @@
       else prepare();
     }
     if (!opts.art) return wrap;
-    return el("div", { class: "sharewrap" }, [wrap, el("img", {
-      class: "shareart", src: opts.art, alt: "", loading: "lazy", decoding: "async",
-      width: "480", height: "480"
-    })]);
+    // Края картинки растворены в файле, а под ними — пятно того же цвета:
+    // вместе они уводят её синеву в светлый фон страницы без границы.
+    return el("div", { class: "sharewrap" }, [wrap,
+      el("div", { class: "picfade", style: "--pic:#a8d6f6" }, [
+        el("img", { src: opts.art, alt: "", loading: "lazy", decoding: "async", width: "760", height: "760" })
+      ])
+    ]);
   }
 
   /* --- рейтинг --- */

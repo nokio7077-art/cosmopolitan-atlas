@@ -35,10 +35,12 @@
 CA.ready(function () {
   var el = CA.el;
   // Картинка слева, текст справа; на телефоне картинка уходит под заголовок.
-  var art = el("img", { class: "pagepic", src: "art/about.webp", alt: "",
-    width: "860", height: "573", decoding: "async" });
-  CA.mount(el("div", { class: "screen prose withpic", style: "max-width:960px" }, [
-    el("a", { href: "index.html", style: "font-size:15px" }, ["← Вернуться к игре"]),
+  // Цвет пятна под картинкой — замер краевого пояса самого файла.
+  var art = el("div", { class: "picfade", style: "--pic:#a3d0ed" }, [
+    el("img", { src: "art/about.webp", alt: "Земля за письменным столом с книгами по географии, рядом спит кот", width: "860", height: "573", decoding: "async" })
+  ]);
+  CA.mount(el("div", { class: "screen prose withpic" }, [
+    el("a", { class: "backlink", href: "index.html", style: "font-size:15px" }, ["← Вернуться к игре"]),
     el("h1", { class: "big", style: "font-size:clamp(30px,4vw,44px);margin:18px 0 20px" }, ["О проекте"]),
     art,
     el("p", {}, [el("b", { style: "font-weight:600" }, ["Cosmopolitan — Атлас памяти"]), " — независимый образовательный проект: викторина для проверки и тренировки знаний географии — стран, столиц, флагов и их расположения на карте мира."]),

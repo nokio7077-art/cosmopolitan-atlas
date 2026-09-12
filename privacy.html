@@ -34,10 +34,12 @@
 <script>
 CA.ready(function () {
   var el = CA.el;
-  var art = el("img", { class: "pagepic", src: "art/privacy.webp", alt: "",
-    width: "560", height: "560", decoding: "async" });
-  CA.mount(el("div", { class: "screen prose withpic", style: "max-width:960px" }, [
-    el("a", { href: "index.html", style: "font-size:15px" }, ["← Вернуться к игре"]),
+  // Цвет пятна под картинкой — замер краевого пояса самого файла.
+  var art = el("div", { class: "picfade", style: "--pic:#9cd1f7" }, [
+    el("img", { src: "art/privacy.webp", alt: "Земля в очках печатает на машинке, рядом спит кот", width: "560", height: "560", decoding: "async" })
+  ]);
+  CA.mount(el("div", { class: "screen prose withpic" }, [
+    el("a", { class: "backlink", href: "index.html", style: "font-size:15px" }, ["← Вернуться к игре"]),
     el("h1", { class: "big", style: "font-size:clamp(28px,3.6vw,40px);margin:18px 0 8px" }, ["Политика конфиденциальности"]),
     art,
     el("p", { style: "margin:0;font-size:15px;color:var(--n700)" }, ["Действует в отношении сайта cosmopolitan-atlas.online. Последнее обновление: сентябрь 2026."]),
