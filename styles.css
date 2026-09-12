@@ -79,6 +79,16 @@ body.playing .nav .wrap{min-height:0;gap:12px;padding-top:7px;padding-bottom:7px
 body.playing .navlinks,body.playing .nav-right{display:none;}
 body.playing .nav-brand{font-size:0;gap:0;flex:none;}
 body.playing .nav-brand .mark{width:32px;height:32px;}
+/* Задник на время партии — и в «Играть», и во «Флагах»: пустой светлый экран
+   вокруг вопроса выглядел голо. Поверх картинки лежит светлая вуаль: без неё
+   тёмная листва по краям спорила бы с текстом. Картинка закреплена, поэтому
+   при прокрутке вопроса небо стоит на месте. */
+body.playing{background-image:linear-gradient(rgba(244,249,255,.62) 0,rgba(244,249,255,.34) 340px,rgba(244,249,255,.28) 100%),url("art/sky.webp");
+  background-size:cover;background-position:center top;background-attachment:fixed;background-repeat:no-repeat;}
+/* На телефонах закреплённый фон дорого перерисовывать при прокрутке. */
+@media (max-width:760px){
+  body.playing{background-attachment:scroll;background-position:center 60px;}
+}
 body.playing .site-footer{display:none;}
 body.playing .screen{padding-top:10px;}
 
@@ -411,3 +421,15 @@ td{padding:13px 12px 13px 0;border-bottom:2px solid var(--n200);}
 .sharewrap{display:flex;align-items:center;gap:clamp(6px,1.5vw,18px);flex-wrap:wrap;margin-top:26px;}
 .sharewrap .sharebar{flex:1 1 240px;min-width:0;margin-top:0;}
 .sharewrap .picfade{flex:0 0 auto;width:clamp(170px,34vw,290px);}
+
+/* «Стоит повторить» на экране выбора региона: ошибки копятся между заходами,
+   и это первое, что стоит предложить вернувшемуся игроку. */
+.repeatbar{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  background:var(--gold-l);border:2px solid var(--gold);border-radius:var(--r);
+  padding:clamp(16px,2.4vw,22px) clamp(18px,2.6vw,26px);margin-bottom:26px;}
+.repeat-count{margin:6px 0 0;font-size:20px;line-height:26px;font-weight:900;color:var(--ink);}
+.repeat-names{margin:4px 0 0;font-size:15px;line-height:22px;font-weight:700;color:var(--n700);max-width:52ch;}
+.repeatbar .btn{flex:none;}
+.repeat-note{margin:18px 0 0;font-size:15px;line-height:23px;font-weight:700;color:var(--n700);}
+/* Картинка под списком ошибок: она здесь для воздуха, а не ради разглядывания. */
+.endpic{width:min(100%,300px);margin:24px 0 0;}
