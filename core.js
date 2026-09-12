@@ -1013,6 +1013,15 @@
     progress.playerTitle = p.title; progress.playerNumber = p.number; saveProgress();
     return true;
   }
+  // Значок под каждый титул: капитану — фуражка, матросу — тельняшка, пилигриму
+  // — ракушка. Порядок в art/ava совпадает с порядком в PERSONAS, поэтому имя
+  // файла считаем прямо по номеру титула.
+  function personaAvatar(title) {
+    var i = PERSONAS.indexOf(title || progress.playerTitle);
+    if (i < 0) return "art/avatar.webp";
+    return "art/ava/" + (i < 9 ? "0" : "") + (i + 1) + ".webp";
+  }
+
   function pickPersona(title, cb) {
     if (progress.playerNumber) { progress.playerTitle = title; saveProgress(); cb && cb(true); return; }
     if (!sb) { cb && cb(false, "Рейтинг ещё не подключён"); return; }
@@ -1078,9 +1087,11 @@
         el("a", { class: "nav-brand", href: "index.html" }, [brandMark(), "Cosmopolitan Atlas"]),
         links,
         el("div", { class: "nav-right" }, [
-          el("a", { class: "nav-ava", href: "settings.html", "aria-label": "Настройки игрока" }, [
-            el("img", { src: "art/avatar.webp", alt: "", width: "44", height: "44" })
-          ]),
+          el("a", {
+            class: "nav-ava", href: "settings.html",
+            "aria-label": progress.playerTitle ? ("Профиль · " + progress.playerTitle) : "Настройки игрока",
+            title: progress.playerTitle || null
+          }, [el("img", { src: personaAvatar(), alt: "", width: "44", height: "44" })]),
           el("a", { class: "nav-score", href: "settings.html", title: "Лучший результат за сессию" }, [
             el("span", { class: "st", html: ICON_STAR }),
             el("span", {}, [String(progress.highScore || 0)])
@@ -1130,7 +1141,7 @@
     playMode: playMode, gameBar: gameBar, playBar: playBar,
     shareBlock: shareBlock, resultImage: resultImage,
     population: population, popText: popText, countryCard: countryCard, verdict: verdict,
-    currentDisplayName: currentDisplayName, pickPersona: pickPersona,
+    currentDisplayName: currentDisplayName, pickPersona: pickPersona, personaAvatar: personaAvatar,
     submitToLeaderboard: submitToLeaderboard, fetchLeaderboard: fetchLeaderboard, hasServer: !!sb,
     mount: function (node) { document.getElementById("app").appendChild(el("div", { class: "wrap" }, [node])); },
     ready: function (fn) { chrome(); fn(); }
