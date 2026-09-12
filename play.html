@@ -132,12 +132,36 @@ CA.ready(function () {
     st.round = newRound(st.queue[0]); st.view = "round"; render();
   }
 
+  // Ошибки копятся между заходами, а не живут одну сессию: страна попадает сюда
+  // после промаха и уходит, когда средний результат по ней доходит до двух
+  // шагов из трёх. Показываем блок только если набралось хотя бы четыре — с
+  // двумя странами раунд не собрать.
+  function repeatBlock() {
+    var list = CA.shaky("world");
+    if (list.length < 4) return null;
+    var take = Math.min(list.length, 10);
+    var names = list.slice(0, 4).map(function (c) { return c.n; }).join(", ");
+    return el("div", { class: "repeatbar" }, [
+      el("div", {}, [
+        k("Стоит повторить"),
+        el("p", { class: "repeat-count" }, [list.length + " " + countryWord(list.length) + " ждут второго захода"]),
+        el("p", { class: "repeat-names" }, [names + (list.length > 4 ? " и другие" : "")])
+      ]),
+      el("button", { class: "btn primary", type: "button", onclick: function () {
+        // Берём самые проблемные, но порядок внутри раунда мешаем: одна и та
+        // же последовательность быстро заучивается вместо самих стран.
+        start("world", take, CA.shuffle(CA.shaky("world").slice(0, take)));
+      } }, ["Собрать раунд из " + take + " " + countryWord(take)])
+    ]);
+  }
+
   function viewRegions() {
     return el("div", { class: "screen" }, [
       el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px" }, [
         el("a", { href: "index.html" }, ["← На главную"]), k("Режим «Играть»")
       ]),
       el("h1", { class: "big", style: "font-size:clamp(32px,4.5vw,48px);margin-bottom:26px" }, ["Где сегодня играем?"]),
+      repeatBlock(),
       el("div", { class: "tile-list" }, ["world"].concat(CA.REGION_ORDER).map(function (key) {
         var list = CA.regionCountries(key), done = CA.studiedCount(key), locked = !CA.unlocked(key);
         return el("a", {
@@ -515,7 +539,22 @@ CA.ready(function () {
         var isos = names.map(function (n) { return st.mistakes[n].iso; });
         start(st.region, isos.length, COUNTRIES.filter(function (c) { return isos.indexOf(c.f) >= 0; }));
       } }, ["Собрать раунд из этих стран"])]));
-    } else right.appendChild(el("p", { class: "verdict" }, ["Ни одной осечки. Такое бывает нечасто."]));
+    }
+    // Список ошибок теперь переживает закрытие вкладки, и об этом стоит сказать
+    // прямо здесь: человек только что ошибся и как раз думает, что с этим делать.
+    var all = CA.shaky("world");
+    if (all.length >= 4) {
+      right.appendChild(el("p", { class: "repeat-note" }, [
+        "Всего за всё время накопилось " + all.length + " " + countryWord(all.length) +
+        ", где счёт пока не выправлен. Они ждут на экране выбора региона."
+      ]));
+    }
+    if (!names.length) right.appendChild(el("p", { class: "verdict" }, ["Ни одной осечки. Такое бывает нечасто."]));
+    // Ликующая Земля закрывает пустоту под правой колонкой — там, где список
+    // ошибок кончается, а до подвала ещё далеко.
+    right.appendChild(el("div", { class: "picfade endpic", style: "--pic:#a8d6f6" }, [
+      el("img", { src: "art/cheer.webp", alt: "", loading: "lazy", decoding: "async", width: "760", height: "760" })
+    ]));
 
     var sendWrap = el("div", { style: "margin-top:24px" });
     if (!CA.currentDisplayName()) sendWrap.appendChild(el("p", { style: "margin:0;font-size:16px;color:var(--n800)" }, [
@@ -565,7 +604,7 @@ CA.ready(function () {
             el("button", { class: "btn ghost", type: "button", onclick: function () { st.view = "regions"; render(); } }, ["Другой регион"])
           ]),
           CA.shareBlock({
-            text: shareText, title: "Мой результат в Cosmopolitan Atlas", art: "art/cheer.webp",
+            text: shareText, title: "Мой результат в Cosmopolitan Atlas",
             card: {
               badge: record ? "личный рекорд" : "результат сессии",
               score: st.score,

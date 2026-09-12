@@ -111,6 +111,33 @@
   }
   function regionName(key) { return key === "world" ? "Весь мир" : (REGION_META[key] ? REGION_META[key].name : "Мир"); }
   function studiedCount(key) { return regionCountries(key).filter(function (c) { return isStudied(c.f); }).length; }
+
+  // Страны, на которых человек уже спотыкался и пока не выправил счёт. Список
+  // ведётся между сессиями: ошибки давно копились в perCountry, просто никто
+  // их не показывал, и после закрытия вкладки «Стоит повторить» пропадало.
+  // Сам себя чистит: как только средний результат доходит до двух шагов из
+  // трёх, страна считается изученной и отсюда уходит.
+  function mistakeCount(iso) {
+    var e = entry(iso);
+    if (!e || !e.mistakes) return 0;
+    return (e.mistakes.capital || 0) + (e.mistakes.flag || 0) + (e.mistakes.map || 0);
+  }
+  function shaky(key) {
+    return regionCountries(key || "world").filter(function (c) {
+      var e = entry(c.f);
+      return e && e.attempts && !isStudied(c.f) && mistakeCount(c.f) > 0;
+    }).sort(function (a, b) { return mistakeCount(b.f) - mistakeCount(a.f); });
+  }
+  // Чего именно не хватает: «столица, карта».
+  function shakyWhat(iso) {
+    var e = entry(iso);
+    if (!e || !e.mistakes) return "";
+    var w = [];
+    if (e.mistakes.capital) w.push("столица");
+    if (e.mistakes.flag) w.push("флаг");
+    if (e.mistakes.map) w.push("карта");
+    return w.join(", ");
+  }
   function unlocked(key) { return !PREMIUM_ENABLED || !!progress.premium || FREE.indexOf(key) >= 0; }
   function hintsLeft() { return PREMIUM_ENABLED ? (progress.hints || 0) : Infinity; }
   function spendHint() {
@@ -1087,7 +1114,8 @@
     shuffle: shuffle, norm: norm, fuzzy: fuzzy,
     progress: progress, saveProgress: saveProgress, entry: entry, isStudied: isStudied,
     byIso: byIso, regionCountries: regionCountries, regionName: regionName, studiedCount: studiedCount,
-    unlocked: unlocked, REGION_ORDER: REGION_ORDER, SIZE_TOL: SIZE_TOL, PERSONAS: PERSONAS,
+    unlocked: unlocked, shaky: shaky, shakyWhat: shakyWhat, mistakeCount: mistakeCount,
+    REGION_ORDER: REGION_ORDER, SIZE_TOL: SIZE_TOL, PERSONAS: PERSONAS,
     premiumEnabled: PREMIUM_ENABLED, hintsLeft: hintsLeft, spendHint: spendHint,
     myCode: myCode, readPlayerCode: readPlayerCode, restorePlayer: restorePlayer,
     saveSession: saveSession, loadSession: loadSession, clearSession: clearSession,
